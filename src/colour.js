@@ -25,12 +25,12 @@ export function extractRGB(rgbString) {
  * @returns {(object|null)} Either an object holding h,s,l properties, or null if not matched
  */
 export function extractHSL(hslString) {
-    const hsl = /hsl\(\s*(\d+)\s*,\s*(\d+)%\s*,\s*(\d+)%\s*\)/.exec(hslString);
+    const hsl = /hsl\(\s*([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)%\s*,\s*([+-]?\d+(?:\.\d+)?)%\s*\)/.exec(hslString);
     if (hsl) {
         return {
-            h: parseInt(hsl[1]),
-            s: parseInt(hsl[2]),
-            l: parseInt(hsl[3]),
+            h: parseFloat(hsl[1]),
+            s: parseFloat(hsl[2]),
+            l: parseFloat(hsl[3]),
         };
     }
     return null;
@@ -105,9 +105,58 @@ export function RGBToHSL(rgb) {
 }
 
 /**
+ * Converts an HSL color value to RGB
+ * Adapted from https://github.com/mjackson/
+ * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
+ * @param {object} hsl HSL object holding h,s,l properties (h [0,360], s,l [0,100])
+ * @returns {object} RGB object holding r,g,b properties (each [0,255])
+ */
+export function HSLToRGB(hsl){
+    let {h,s,l} = hsl;
+    h /= 360;
+    s /= 100;
+    l /= 100;
+
+    let r, g, b;
+
+    if(s == 0){
+        r = g = b = l; // achromatic
+    }else{
+        const hue2rgb = function hue2rgb(p, q, t){
+            if(t < 0) t += 1;
+            if(t > 1) t -= 1;
+            if(t < 1/6) return p + (q - p) * 6 * t;
+            if(t < 1/2) return q;
+            if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        };
+
+        let q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        let p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+
+    r = Math.round(r * 255);
+    g = Math.round(g * 255);
+    b = Math.round(b * 255);
+    return hsl.hasOwnProperty("a") ? {
+        r,
+        g,
+        b,
+        a: hsl.a
+    } : {
+        r,
+        g,
+        b
+    };
+}
+
+/**
  * Adjust an existing color into a new color
  * @param color A color in RGB, hex, or HSL form
- * @param adjustment Object with H, S, L, and optionally A as properties
+ * @param adjustment Object with h, s, l, and optionally a as properties for how much to modify them by (addition)
  */
 export function adjustColor(color, adjustment) {
     // convert everything to HSL
@@ -130,6 +179,7 @@ export function adjustColor(color, adjustment) {
                color.hasOwnProperty("b")) {
         hsl = RGBToHSL(color);
     }
+
     // can't do it
     if (hsl === null) {
         return null;
@@ -138,9 +188,8 @@ export function adjustColor(color, adjustment) {
     hsl.s += adjustment.s || 0;
     hsl.l += adjustment.l || 0;
     if (adjustment.hasOwnProperty("a")) {
-        return `hsla(${hsl.h.toFixed(1)},${hsl.s.toFixed(1)}%,${hsl.l.toFixed(1)}%,${adjustment.a.toFixed(
-            2)})`;
+        return `hsla(${hsl.h},${hsl.s}%,${hsl.l}%,${adjustment.a})`;
     } else {
-        return `hsl(${hsl.h.toFixed(1)},${hsl.s.toFixed(1)}%,${hsl.l.toFixed(1)}%)`;
+        return `hsl(${hsl.h},${hsl.s}%,${hsl.l}%)`;
     }
 }
