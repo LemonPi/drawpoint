@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test</title>
+</head>
+<body>
+<canvas width="500" height="500" id="test" style="border:2px solid black; display:block"></canvas>
+<button id="execute">Execute Queued Commands</button>
+<script src="src/capture.js"></script>
+<script>
+
+    // wrap around with canvas drawing
+    var oldGetContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function () {
+        return capture(oldGetContext.apply(this, arguments));
+    };
+
+    // alternatively, if you have access to getting the context, you can say capture(canvas.getContext("2d"))
+    var canvas = document.getElementById("test");
+    window.ctx = canvas.getContext("2d");
+    ctx.lineWidth = 2;
+
+    canvas.addEventListener("mousedown", function (e) {
+        e.preventDefault();
+        var x;
+        var y;
+        if (e.pageX || e.pageY) {
+            x = e.pageX;
+            y = e.pageY;
+        } else {
+            x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+            y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+        }
+        x -= canvas.offsetLeft;
+        y -= canvas.offsetTop;
+
+        ctx.lineTo(x, y);
+    });
+
+
+    var execute = document.getElementById("execute");
+    execute.addEventListener("click", function () {
+        ctx.stroke();
+        ctx.executeAll();
+        ctx.clearQueue();
+        ctx.beginPath();
+    });
+</script>
+</body>
+</html>
