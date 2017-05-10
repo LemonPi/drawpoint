@@ -1,18 +1,16 @@
 "use strict";
 
-export function clone(obj) {
-    if (obj) {
-        return JSON.parse(JSON.stringify(obj));
-    } else {
-        return obj;
-    }
+import {clone} from "./util";
+
+export function point(x, y) {
+    return {x, y};
 }
 
 export function averagePoint(p1, p2, bias = 0.5) {
-    return {
-        x: p1.x * (1 - bias) + p2.x * bias,
-        y: p1.y * (1 - bias) + p2.y * bias
-    };
+    return point(
+        p1.x * (1 - bias) + p2.x * bias,
+        p1.y * (1 - bias) + p2.y * bias
+    );
 }
 
 /**
@@ -22,10 +20,10 @@ export function averagePoint(p1, p2, bias = 0.5) {
  * @returns {{x: number, y: number}}
  */
 export function diff(p1, p2) {
-    return {
-        x: p2.x - p1.x,
-        y: p2.y - p1.y
-    };
+    return point(
+        p2.x - p1.x,
+        p2.y - p1.y
+    );
 }
 
 /**
@@ -53,10 +51,10 @@ export function scale(p1, p2, scale) {
     const pointDiff = diff(p1, p2);
     pointDiff.x *= scale;
     pointDiff.y *= scale;
-    return {
-        x: p1.x + pointDiff.x,
-        y: p1.y + pointDiff.y
-    };
+    return point(
+        p1.x + pointDiff.x,
+        p1.y + pointDiff.y
+    );
 }
 
 /**
@@ -67,10 +65,10 @@ export function scale(p1, p2, scale) {
  * @returns {{x: *, y: *}}
  */
 export function addVector(p1, p2, scale = 1) {
-    return {
-        x: p1.x + p2.x * scale,
-        y: p1.y + p2.y * scale
-    };
+    return point(
+        p1.x + p2.x * scale,
+        p1.y + p2.y * scale
+    );
 }
 
 /**
@@ -80,34 +78,34 @@ export function addVector(p1, p2, scale = 1) {
  */
 export function getUnitVector(vec) {
     const magnitude = norm(vec.x, vec.y);
-    return {
-        x: vec.x / magnitude,
-        y: vec.y / magnitude
-    };
+    return point(
+        vec.x / magnitude,
+        vec.y / magnitude
+    );
 }
 
 export function getPerpendicularVector(vec) {
     // rotate counterclockwise by 90 degrees
-    return getUnitVector({
-        x: -vec.y,
-        y: vec.x
-    });
+    return getUnitVector(point(
+        -vec.y,
+        vec.x
+    ));
 }
 
 
 /**
  * Shift a draw point and its control points
- * @param {object} point
+ * @param {object} pt
  * @param {number} dx
  * @param {number} dy
  * @returns {object}
  */
-export function adjustPoint(point, dx, dy) {
-    if (!point) {
-        return point;
+export function adjustPoint(pt, dx, dy) {
+    if (!pt) {
+        return pt;
     }
     // return a point with x and y adjusted by dx and dy respectively
-    const movedPoint = clone(point);
+    const movedPoint = clone(pt);
     movedPoint.x += dx;
     movedPoint.y += dy;
     if (movedPoint.cp1) {
@@ -130,8 +128,8 @@ export function adjustPoint(point, dx, dy) {
  */
 export function shiftPoints(dx, dy, ...points) {
     const shiftedPoints = [];
-    points.forEach((point) => {
-        shiftedPoints.push(adjustPoint(point, dx, dy));
+    points.forEach((pt) => {
+        shiftedPoints.push(adjustPoint(pt, dx, dy));
     });
     return shiftedPoints;
 }
@@ -139,25 +137,24 @@ export function shiftPoints(dx, dy, ...points) {
 /**
  * Remove any extra information from a point down to just x,y
  */
-export function extractPoint(point) {
-    return {
-        x: point.x,
-        y: point.y
-    };
+export function extractPoint(pt) {
+    return pt(
+        pt.x,
+        pt.y
+    );
 }
 
 /**
  * Remove any extra information from a point and reflect across y axis
- * @memberof module:da
  */
-export function reflectPoint(point) {
-    if (!point) {
-        return point;
+export function reflectPoint(pt) {
+    if (!pt) {
+        return pt;
     }
-    return {
-        x: -point.x,
-        y: point.y,
-    };
+    return point(
+        -pt.x,
+        pt.y
+    );
 }
 
 /**
@@ -210,17 +207,17 @@ export function rotatePoints(pivot, rad, ...points) {
 /**
  * Helper for rotate points to be used with cached sin and cos
  * @param pivot
- * @param point
+ * @param pt
  * @param sin
  * @param cos
  */
-function rotateDiff(pivot, point, sin, cos) {
-    let pointDiff = diff(pivot, point);
-    point.x -= pointDiff.x;
-    point.y -= pointDiff.y;
+function rotateDiff(pivot, pt, sin, cos) {
+    let pointDiff = diff(pivot, pt);
+    pt.x -= pointDiff.x;
+    pt.y -= pointDiff.y;
     pointDiff.dx = pointDiff.x * cos - pointDiff.y * sin;
     pointDiff.dy = pointDiff.x * sin + pointDiff.y * cos;
-    point.x += pointDiff.dx;
-    point.y += pointDiff.dy;
+    pt.x += pointDiff.dx;
+    pt.y += pointDiff.dy;
 }
 

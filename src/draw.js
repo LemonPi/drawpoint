@@ -1,6 +1,6 @@
 "use strict";
 
-import {clone, diff, scale, extractPoint, averagePoint, getPerpendicularVector} from "point";
+import {clone, diff, scale, extractPoint, averagePoint, getPerpendicularVector} from "./point";
 
 /**
  * Insert this special point in the list of points given to draw points to
@@ -81,11 +81,11 @@ export function drawPoints(ctx, ...points) {
                 ctx.moveTo(p.x, p.y);
             }
         } else if (p.cp2 && p.cp1) {
-            ctx.bezierCurveTo(p.cp1.x, p.cp1.y, p.cp2.x, p.cp2.y, p.x, p.y, p.traceSize);
+            ctx.bezierCurveTo(p.cp1.x, p.cp1.y, p.cp2.x, p.cp2.y, p.x, p.y, p.traceOptions);
         } else if (p.cp1) {
-            ctx.quadraticCurveTo(p.cp1.x, p.cp1.y, p.x, p.y, p.traceSize);
+            ctx.quadraticCurveTo(p.cp1.x, p.cp1.y, p.x, p.y, p.traceOptions);
         } else if (p.cp2) {
-            ctx.quadraticCurveTo(p.cp2.x, p.cp2.y, p.x, p.y, p.traceSize);
+            ctx.quadraticCurveTo(p.cp2.x, p.cp2.y, p.x, p.y, p.traceOptions);
         } else if (p.hasOwnProperty("x")) {
             ctx.lineTo(p.x, p.y);
         }
@@ -172,16 +172,19 @@ export function drawSpecificCurl(left, center, right) {
 /**
  * Debug the curve going into a drawpoint. Use by wrapping a drawpoint with it when returning
  * to guiMenuItem.
- * @param {object} point
- * @param {number} radius Radius of the control points to show
+ * @param {object} pt
+ * @param {object} traceOptions Options for how to show the points
  * @returns {*}
  */
-export function tracePoint(point, radius) {
-    if (!radius) {
-        radius = 1;
+export function tracePoint(pt, options) {
+    if (!options) {
+        options = {radius:1};
+    } else if (typeof options === "number") {
+        // convenience for defining radius of trace point
+        options = {radius:options};
     }
-    // add a trace to a drawpoint when giving to da.guiMenuItem function
-    return Object.assign({traceSize: radius}, point);
+    pt.traceOptions = {point:options};
+    return pt;
 }
 
 
@@ -280,8 +283,8 @@ function splitLinear(points, t) {
 /**
  * Split the curve between two drawpoints and return all the resulting drawpoints
  * @memberof module:da
- * @param {object} startp Starting drawpoint
- * @param {object} endp Ending drawpoint and also where we look at the control points
+ * @param {object} p1 Starting drawpoint
+ * @param {object} p2 Ending drawpoint and also where we look at the control points
  * @param {number} t "time" along the curve to split at. Since all curves are parameterized
  * curves, t is their parameter. Can be thought of as traversing along the curve, where 0 is
  * at the start point and 1 is at the end point. This value can go beyond [0,1].
@@ -289,28 +292,28 @@ function splitLinear(points, t) {
  * p1 (start point), p2 (end point), and optionally cp1 and cp2 depending on what kind of
  * curve was split. Note that sp.left.p2 === sp.right.p1 always in value.
  */
-export function splitCurve(startp, endp, t) {
+export function splitCurve(p1, p2, t) {
     // split either a quadratic or bezier curve depending on number of control points on
-    // endp
-    if (endp.cp1 && endp.cp2) {
+    // the end point
+    if (p2.cp1 && p2.cp2) {
         return splitBezier({
-            p1 : extractPoint(startp),
-            p2 : extractPoint(endp),
-            cp1: endp.cp1,
-            cp2: endp.cp2
+            p1 : extractPoint(p1),
+            p2 : extractPoint(p2),
+            cp1: p2.cp1,
+            cp2: p2.cp2
         }, t);
     }
-    const cp = endp.cp1 || endp.cp2;
+    const cp = p2.cp1 || p2.cp2;
     if (cp) {
         return splitQuadratic({
-            p1 : extractPoint(startp),
-            p2 : extractPoint(endp),
+            p1 : extractPoint(p1),
+            p2 : extractPoint(p2),
             cp1: cp
         }, t);
     } else {
         return splitLinear({
-            p1: extractPoint(startp),
-            p2: endp
+            p1: extractPoint(p1),
+            p2: p2
         }, t);
     }
 }
@@ -592,7 +595,8 @@ export function getCubicControlPoints(start, end) {
  * @param startP2
  * @param endP1
  * @param endP2
- * @param t Amount to transform, [0,1]
+ * @param t Amount to transform, [0,1] 0 is no transformation at all and is equal to the start curve;
+ * 1 is full transformation and is equal to the end curve
  * @returns Replacement draw point for endP2
  */
 export function transformCurve(startP1, startP2, endP1, endP2, t) {
@@ -619,36 +623,36 @@ export function transformCurve(startP1, startP2, endP1, endP2, t) {
 }
 
 /**
- * Return a drawpoint that is in the same spot as endpoint but with the control points
- * that would yield the same curve as going from endPoint to prevPoint
- * @param endPoint
- * @param prevPoint
+ * Given a curve defined by (start, end), return a draw point such that (end, returned point) looks identical,
+ * but travels in the opposite direction.
+ * @param start
+ * @param end
  * @returns {*}
  */
-export function reverseDrawPoint(endPoint, prevPoint) {
-    if (!endPoint || !prevPoint) {
-        return endPoint;
+export function reverseDrawPoint(start, end) {
+    if (!start || !end) {
+        return start;
     }
     return {
-        x  : endPoint.x,
-        y  : endPoint.y,
-        cp1: clone(prevPoint.cp2),
-        cp2: clone(prevPoint.cp1)
+        x  : start.x,
+        y  : start.y,
+        cp1: clone(end.cp2),
+        cp2: clone(end.cp1)
     };
 }
 
 /**
  * For a bezier curve point, get a control point on the other side of the point so that the
  * curve is smooth.
- * @param {point} point Draw point along a bezier curve (must have 2nd control point)
+ * @param {point} pt End point of a bezier curve (must have 2nd control point)
  * @param {number} scaleValue How much back to extend the continuing control point.
  * A value of 1 produces a symmetric curve.
  * @returns {{x, y}|{x: number, y: number}|*} Continuing control point
  */
-export function getSmoothControlPoint(point, scaleValue) {
-    if (point.hasOwnProperty("cp2") === false) {
+export function getSmoothControlPoint(pt, scaleValue) {
+    if (pt.hasOwnProperty("cp2") === false) {
         throw new Error("point has no second control point; can't get smooth control point");
     }
-    return scale(point, point.cp2, -scaleValue);
+    return scale(pt, pt.cp2, -scaleValue);
 }
 
