@@ -102,7 +102,7 @@ exports.reflectPoint = reflectPoint;
 exports.scalePoints = scalePoints;
 exports.rotatePoints = rotatePoints;
 
-var _util = __webpack_require__(2);
+var _util = __webpack_require__(3);
 
 function point(x, y) {
     return { x: x, y: y };
@@ -370,6 +370,8 @@ exports.transformCurve = transformCurve;
 
 var _point = __webpack_require__(0);
 
+var _numeric = __webpack_require__(2);
+
 function splitBezier(points, t) {
     // split a cubic bezier based on De Casteljau, t is between [0,1]
     var A = points.p1,
@@ -592,7 +594,7 @@ function solveCubicEquation(a, b, c) {
     // u^3 = -q/2 +- sqrt((q/2)^2 + (p/3)^3) get v^3 from u^3 - v^3 = -q
     // v^3 = q/2  +- sqrt((q/2)^2 + (p/3)^3)
     // and determine the discriminant:
-    var discriminant = roundToDecimal(q2 * q2 + p3 * p3 * p3, 8);
+    var discriminant = (0, _numeric.roundToDec)(q2 * q2 + p3 * p3 * p3, 8);
 
     // 1 real root
     if (discriminant > 0) {
@@ -646,10 +648,6 @@ function solveCubicEquation(a, b, c) {
     return [x1, x2, x3];
 }
 
-function roundToDecimal(num, dec) {
-    return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
-}
-
 function interpolateCubic(p0, p1, p2, p3, p) {
     // and rewrite from [a(1-t)^3 + 3bt(1-t)^2 + 3c(1-t)t^2 + dt^3] form
     p0 -= p;
@@ -668,7 +666,7 @@ function interpolateCubic(p0, p1, p2, p3, p) {
     var ts = [];
     var root = void 0;
     for (var i = 0; i < roots.length; i++) {
-        root = roundToDecimal(roots[i], 15);
+        root = (0, _numeric.roundToDec)(roots[i], 15);
         if (root >= 0 && root <= 1) {
             ts.push(root);
         }
@@ -854,6 +852,63 @@ function transformCurve(startP1, startP2, endP1, endP2, t) {
 
 
 Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.deg = deg;
+exports.rad = rad;
+exports.clamp = clamp;
+exports.roundToDec = roundToDec;
+/**
+ * Created by Johnson on 2017-04-02.
+ */
+
+/**
+ * Convert radians to degrees
+ * @param radian
+ * @returns {number}
+ */
+function deg(radian) {
+  return 180 * radian / Math.PI;
+}
+
+/**
+ * Convert degrees to radians
+ * @param degree
+ * @returns {number}
+ */
+function rad(degree) {
+  return degree * Math.PI / 180;
+}
+
+/**
+ * Clamp a number between a minimum and maximum value
+ * @param {number} num
+ * @param {number} min
+ * @param {number} max
+ * @returns {number} Clamped number
+ */
+function clamp(num, min, max) {
+  return num < min ? min : num > max ? max : num;
+}
+
+/**
+ * Round a number to a fixed number of decimals
+ * @param {number} num Number to round
+ * @param {number} numDecimals Number of decimals
+ * @returns {number}
+ */
+function roundToDec(num, numDecimals) {
+  return parseFloat(num.toFixed(numDecimals));
+}
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
     value: true
 });
 exports.clone = clone;
@@ -886,7 +941,7 @@ function fillerDefinition(ex, drawPointName) {
 }
 
 /***/ }),
-/* 3 */
+/* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1110,7 +1165,7 @@ function adjustColor(color, adjustment) {
 }
 
 /***/ }),
-/* 4 */
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1328,63 +1383,6 @@ function getSmoothControlPoint(pt, scaleValue) {
 }
 
 /***/ }),
-/* 5 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.deg = deg;
-exports.rad = rad;
-exports.clamp = clamp;
-exports.roundToDec = roundToDec;
-/**
- * Created by Johnson on 2017-04-02.
- */
-
-/**
- * Convert radians to degrees
- * @param radian
- * @returns {number}
- */
-function deg(radian) {
-  return 180 * radian / Math.PI;
-}
-
-/**
- * Convert degrees to radians
- * @param degree
- * @returns {number}
- */
-function rad(degree) {
-  return degree * Math.PI / 180;
-}
-
-/**
- * Clamp a number between a minimum and maximum value
- * @param {number} num
- * @param {number} min
- * @param {number} max
- * @returns {number} Clamped number
- */
-function clamp(num, min, max) {
-  return num < min ? min : num > max ? max : num;
-}
-
-/**
- * Round a number to a fixed number of decimals
- * @param {number} num Number to round
- * @param {number} numDecimals Number of decimals
- * @returns {number}
- */
-function roundToDec(num, numDecimals) {
-  return parseFloat(num.toFixed(numDecimals));
-}
-
-/***/ }),
 /* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -1395,7 +1393,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _util = __webpack_require__(2);
+var _util = __webpack_require__(3);
 
 Object.keys(_util).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -1407,7 +1405,7 @@ Object.keys(_util).forEach(function (key) {
   });
 });
 
-var _colour = __webpack_require__(3);
+var _colour = __webpack_require__(4);
 
 Object.keys(_colour).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -1419,7 +1417,7 @@ Object.keys(_colour).forEach(function (key) {
   });
 });
 
-var _numeric = __webpack_require__(5);
+var _numeric = __webpack_require__(2);
 
 Object.keys(_numeric).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -1455,7 +1453,7 @@ Object.keys(_curve).forEach(function (key) {
   });
 });
 
-var _draw = __webpack_require__(4);
+var _draw = __webpack_require__(5);
 
 Object.keys(_draw).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;

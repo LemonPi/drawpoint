@@ -3,6 +3,7 @@
  */
 
 import {extractPoint, diff, getPerpendicularVector, averagePoint} from "./point";
+import {roundToDec} from "./numeric";
 
 function splitBezier(points, t) {
     // split a cubic bezier based on De Casteljau, t is between [0,1]
@@ -227,7 +228,7 @@ function solveCubicEquation(a, b, c) {
     // u^3 = -q/2 +- sqrt((q/2)^2 + (p/3)^3) get v^3 from u^3 - v^3 = -q
     // v^3 = q/2  +- sqrt((q/2)^2 + (p/3)^3)
     // and determine the discriminant:
-    const discriminant = roundToDecimal(q2 * q2 + p3 * p3 * p3, 8);
+    const discriminant = roundToDec(q2 * q2 + p3 * p3 * p3, 8);
 
     // 1 real root
     if (discriminant > 0) {
@@ -281,10 +282,6 @@ function solveCubicEquation(a, b, c) {
     return [x1, x2, x3];
 }
 
-function roundToDecimal(num, dec) {
-    return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
-}
-
 function interpolateCubic(p0, p1, p2, p3, p) {
     // and rewrite from [a(1-t)^3 + 3bt(1-t)^2 + 3c(1-t)t^2 + dt^3] form
     p0 -= p;
@@ -303,7 +300,7 @@ function interpolateCubic(p0, p1, p2, p3, p) {
     const ts = [];
     let root;
     for (let i = 0; i < roots.length; i++) {
-        root = roundToDecimal(roots[i], 15);
+        root = roundToDec(roots[i], 15);
         if (root >= 0 && root <= 1) {
             ts.push(root);
         }
