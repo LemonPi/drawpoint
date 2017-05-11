@@ -4,14 +4,24 @@
 const dp = require("../dist/drawpoint");
 const assert = require("assert");
 
+function rand(minimum, maximum) {
+    return Math.random() * (maximum - minimum + 1) + minimum;
+}
+
 function randInt(minimum, maximum) {
-    return Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
+    return Math.floor(rand(minimum, maximum));
 }
 
 function toPaddedHexString(num, len) {
     const str = num.toString(16);
     return "0".repeat(len - str.length) + str;
 }
+
+function closeTo(actual, expected, delta) {
+    return Math.abs(actual - expected) < delta;
+}
+
+const floatEpsilon = 0.0000001;
 
 describe("Draw points", function () {
     describe("color", function () {
@@ -50,8 +60,8 @@ describe("Draw points", function () {
                 });
             });
         });
-        
-        describe("#adjustColor", function() {
+
+        describe("#adjustColor", function () {
             it("should return identity when given no adjustment object", function () {
                 colors.forEach((rgb) => {
                     const hsl = dp.RGBToHSL(rgb);
@@ -63,4 +73,71 @@ describe("Draw points", function () {
             });
         });
     });
+
+    describe("numeric", function () {
+        describe("#deg, #rad", function () {
+            const degs = [];
+            const rads = [];
+            for (let i = 0; i < 10; ++i) {
+                degs.push(randInt(-720, 720));
+                rads.push(rand(-10, 10));
+            }
+
+            it("should get back original degrees after rad", function () {
+                degs.forEach((deg)=> {
+                    assert(closeTo(dp.deg(dp.rad(deg)), deg, floatEpsilon));
+                });
+            });
+
+            it("should get back original radians after deg", function () {
+                rads.forEach((rad)=> {
+                    assert(closeTo(dp.rad(dp.deg(rad)), rad, floatEpsilon));
+                });
+            });
+        });
+
+        describe("#clamp", function () {
+            const numbers = [];
+            for (let i = 0; i < 10; ++i) {
+                numbers.push(randInt(-100, 100));
+            }
+            it("should not do anything when inside bounds", function () {
+                numbers.forEach((number)=> {
+                    assert.equal(dp.clamp(number, -101, 101), number);
+                });
+            });
+
+            it("should clamp to max when greater than max", function () {
+                numbers.forEach((number)=> {
+                    assert.equal(dp.clamp(number, -101, number - 1), number - 1);
+                });
+            });
+            it("should clamp to min when less than min", function () {
+                numbers.forEach((number)=> {
+                    assert.equal(dp.clamp(number, number + 1, 101), number + 1);
+                });
+            });
+        });
+
+        describe("#roundToDec", function() {
+            it("should round to integer with 0 or unspecified decimal places", function () {
+               assert.equal(dp.roundToDec(0.23, 0), 0);
+                assert.equal(dp.roundToDec(1.1),1);
+            });
+
+            it("should round negative numbers towards 0", function() {
+                assert.equal(dp.roundToDec(-0.49, 0), 0);
+                assert.equal(dp.roundToDec(-0.49, 1), -0.5);
+            });
+
+            it("should leave number as is if rounding to more decimals than given", function() {
+                assert.equal(dp.roundToDec(0.124, 10), 0.124);
+            });
+
+            it("should round decimals rather than truncate them", function() {
+                assert.equal(dp.roundToDec(0.126, 2), 0.13);
+            });
+        });
+    });
+    
 });
