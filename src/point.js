@@ -6,6 +6,8 @@ export function point(x, y) {
     return {x, y};
 }
 
+export const origin = Object.freeze(point(0,0));
+
 /**
  * Insert this special point in the list of points given to drawPoints to
  * move to the next point instead of drawing to the next point
@@ -48,46 +50,46 @@ export function diff(p1, p2) {
 }
 
 /**
- * Get the magnitude of a vector of any dimension
- * @param components
- * @returns {number} Euclidean (L^2) norm of vector
+ * Get the magnitude of a vector
+ * @param vec
+ * @returns {number} Euclidean (L^2) norm of vec
  */
-export function norm(...components) {
-    let tot = 0;
-    components.forEach((component)=>{
-        tot += component * component;
-    });
-    return Math.sqrt(tot);
+export function norm(vec) {
+    return Math.sqrt(vec.x*vec.x + vec.y*vec.y);
 }
 
 /**
- * Scale the difference between 2 points relative to the first point
- * @param {{x:number, y:number}} p1 First point
- * @param {{x:number, y:number}} p2 Second point
- * @param {number} scale How much to scale the difference (can be greater than 1 and less than 0)
- * @returns {{x: number, y: number}}
+ * Get the angle of a vector in radians
+ * @param vec
+ * @returns {number} Angle in radians
  */
-export function scale(p1, p2, scale) {
-    const pointDiff = diff(p1, p2);
-    pointDiff.x *= scale;
-    pointDiff.y *= scale;
-    return point(
-        p1.x + pointDiff.x,
-        p1.y + pointDiff.y
-    );
+export function angle(vec) {
+    return Math.atan2(vec.y, vec.x);
+}
+
+/**
+ * Get a point after scaling it relative to a reference point.
+ * Grows the vector referencePt -> pt by scaleBy.
+ * @param pt
+ * @param scaleBy
+ * @param referencePt The point from which to scale
+ * @returns {{x: *, y: *}}
+ */
+export function scale(pt, scaleBy, referencePt = origin) {
+    return addVector(referencePt, diff(referencePt, pt), scaleBy);
 }
 
 /**
  * Treat points as vectors and add them, optionally after scaling p2
  * @param p1
  * @param p2
- * @param scale
+ * @param scaleBy
  * @returns {{x: *, y: *}}
  */
-export function addVector(p1, p2, scale = 1) {
+export function addVector(p1, p2, scaleBy = 1) {
     return point(
-        p1.x + p2.x * scale,
-        p1.y + p2.y * scale
+        p1.x + p2.x * scaleBy,
+        p1.y + p2.y * scaleBy
     );
 }
 
@@ -97,7 +99,7 @@ export function addVector(p1, p2, scale = 1) {
  * @returns {{x: number, y: number}}
  */
 export function getUnitVector(vec) {
-    const magnitude = norm(vec.x, vec.y);
+    const magnitude = norm(vec);
     return point(
         vec.x / magnitude,
         vec.y / magnitude
@@ -117,6 +119,41 @@ export function getPerpendicularVector(vec) {
     ));
 }
 
+/**
+ * Remove any extra information from a point down to just x,y
+ */
+export function extractPoint(pt) {
+    return point(
+        pt.x,
+        pt.y
+    );
+}
+
+/**
+ * Remove any extra information from a point and reflect across y axis
+ */
+export function reflect(pt, m = Infinity, b = 0) {
+    if (!pt) {
+        return pt;
+    }
+    let c,cm;
+
+    // vertical line
+    if (m === Infinity) {
+        c = 0;
+        cm = 0;
+        // has no single y-intercept
+        b = pt.y;
+    } else {
+        c = (pt.x + (pt.y - b)*m) / (1 + m*m);
+        cm = c * m;
+    }
+
+    return point(
+        2*c - pt.x,
+        2*cm - pt.y + 2*b
+    );
+}
 
 /**
  * Shift a draw point and its control points
@@ -125,7 +162,7 @@ export function getPerpendicularVector(vec) {
  * @param {number} dy
  * @returns {object}
  */
-export function adjustPoint(pt, dx, dy) {
+export function adjust(pt, dx, dy) {
     if (!pt) {
         return pt;
     }
@@ -145,104 +182,77 @@ export function adjustPoint(pt, dx, dy) {
 }
 
 /**
- * Shift a sequence of draw points points
+ * Shift a sequence of draw points
  * @param dx
  * @param dy
  * @param points
  * @returns {Array}
  */
-export function shiftPoints(dx, dy, ...points) {
+export function adjustPoints(dx, dy, ...points) {
     const shiftedPoints = [];
     points.forEach((pt) => {
-        shiftedPoints.push(adjustPoint(pt, dx, dy));
+        shiftedPoints.push(adjust(pt, dx, dy));
     });
     return shiftedPoints;
 }
 
 /**
- * Remove any extra information from a point down to just x,y
- */
-export function extractPoint(pt) {
-    return pt(
-        pt.x,
-        pt.y
-    );
-}
-
-/**
- * Remove any extra information from a point and reflect across y axis
- */
-export function reflectPoint(pt) {
-    if (!pt) {
-        return pt;
-    }
-    return point(
-        -pt.x,
-        pt.y
-    );
-}
-
-/**
  * Explode or shrink points around a center point
  * @param center The point other points are scaled relative to
- * @param scaleBy Multiplier for the distance between each point and center
+ * @param {number} scaleBy Multiplier for the distance between each point and center
  * @param points Points to scale relative to center
  */
 export function scalePoints(center, scaleBy, ...points) {
-    for (let i = 0; i < points.length; ++i) {
-        let p = points[i];
-        if (!p || p.hasOwnProperty("x") === false) {
-            continue;
+    points.forEach((pt)=>{
+        if (!pt || pt.hasOwnProperty("x") === false) {
+            return;
         }
-        const {x, y} =  scale(center, p, scaleBy);
-        p.x = x;
-        p.y = y;
-        if (p.hasOwnProperty("cp1")) {
-            p.cp1 = scale(center, p.cp1, scaleBy);
+        const {x, y} =  scale(pt, scaleBy, center);
+        pt.x = x;
+        pt.y = y;
+        if (pt.cp1) {
+            pt.cp1 = scale(pt.cp1, scaleBy, center);
         }
-        if (p.hasOwnProperty("cp2")) {
-            p.cp2 = scale(center, p.cp2, scaleBy);
+        if (pt.cp2) {
+            pt.cp2 = scale(pt.cp2, scaleBy, center);
         }
-    }
+    });
 }
 
 /**
- * Rotate a set of points about a pivot
+ * Rotate a set of points about a pivot in place
  * @param {object} pivot The point to rotate about
  * @param {number} rad Radians counterclockwise to rotate points
- * @param {object[]} points List of points to rotate about pivot
+ * @param points List of points to rotate about pivot
  */
 export function rotatePoints(pivot, rad, ...points) {
     let cos = Math.cos(rad), sin = Math.sin(rad);
-    for (let i = 0; i < points.length; ++i) {
-        let p = points[i];
-        if (!p || p.hasOwnProperty("x") === false) {
-            continue;
+    points.forEach((pt)=>{
+        if (!pt || pt.hasOwnProperty("x") === false) {
+            return;
         }
-        rotateDiff(pivot, p, sin, cos);
-        if (p.cp1) {
-            rotateDiff(pivot, p.cp1, sin, cos);
+        rotateDiff(pivot, pt, sin, cos);
+        if (pt.cp1) {
+            rotateDiff(pivot, pt.cp1, sin, cos);
         }
-        if (p.cp2) {
-            rotateDiff(pivot, p.cp2, sin, cos);
+        if (pt.cp2) {
+            rotateDiff(pivot, pt.cp2, sin, cos);
         }
-    }
+    });
 }
 
 /**
  * Helper for rotate points to be used with cached sin and cos
- * @param pivot
- * @param pt
- * @param sin
- * @param cos
+ * @param pivot Point around which to rotate
+ * @param pt Point to be rotated
+ * @param sin Cached sin(rad) to rotate by
+ * @param cos Cached cos(rad) to rotate by
  */
 function rotateDiff(pivot, pt, sin, cos) {
-    let pointDiff = diff(pivot, pt);
-    pt.x -= pointDiff.x;
-    pt.y -= pointDiff.y;
-    pointDiff.dx = pointDiff.x * cos - pointDiff.y * sin;
-    pointDiff.dy = pointDiff.x * sin + pointDiff.y * cos;
-    pt.x += pointDiff.dx;
-    pt.y += pointDiff.dy;
+    const pointDiff = diff(pivot, pt);
+    const dx = pointDiff.x * cos - pointDiff.y * sin;
+    const dy = pointDiff.x * sin + pointDiff.y * cos;
+    pt.x = pivot.x + dx;
+    pt.y = pivot.y + dy;
 }
 

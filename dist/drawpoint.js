@@ -86,19 +86,20 @@ return /******/ (function(modules) { // webpackBootstrap
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-exports.endPoint = exports.breakPoint = undefined;
+exports.endPoint = exports.breakPoint = exports.origin = undefined;
 exports.point = point;
 exports.averagePoint = averagePoint;
 exports.diff = diff;
 exports.norm = norm;
+exports.angle = angle;
 exports.scale = scale;
 exports.addVector = addVector;
 exports.getUnitVector = getUnitVector;
 exports.getPerpendicularVector = getPerpendicularVector;
-exports.adjustPoint = adjustPoint;
-exports.shiftPoints = shiftPoints;
 exports.extractPoint = extractPoint;
-exports.reflectPoint = reflectPoint;
+exports.reflect = reflect;
+exports.adjust = adjust;
+exports.adjustPoints = adjustPoints;
 exports.scalePoints = scalePoints;
 exports.rotatePoints = rotatePoints;
 
@@ -107,6 +108,8 @@ var _util = __webpack_require__(3);
 function point(x, y) {
     return { x: x, y: y };
 }
+
+var origin = exports.origin = Object.freeze(point(0, 0));
 
 /**
  * Insert this special point in the list of points given to drawPoints to
@@ -146,48 +149,48 @@ function diff(p1, p2) {
 }
 
 /**
- * Get the magnitude of a vector of any dimension
- * @param components
- * @returns {number} Euclidean (L^2) norm of vector
+ * Get the magnitude of a vector
+ * @param vec
+ * @returns {number} Euclidean (L^2) norm of vec
  */
-function norm() {
-    var tot = 0;
-
-    for (var _len = arguments.length, components = Array(_len), _key = 0; _key < _len; _key++) {
-        components[_key] = arguments[_key];
-    }
-
-    components.forEach(function (component) {
-        tot += component * component;
-    });
-    return Math.sqrt(tot);
+function norm(vec) {
+    return Math.sqrt(vec.x * vec.x + vec.y * vec.y);
 }
 
 /**
- * Scale the difference between 2 points relative to the first point
- * @param {{x:number, y:number}} p1 First point
- * @param {{x:number, y:number}} p2 Second point
- * @param {number} scale How much to scale the difference (can be greater than 1 and less than 0)
- * @returns {{x: number, y: number}}
+ * Get the angle of a vector in radians
+ * @param vec
+ * @returns {number} Angle in radians
  */
-function scale(p1, p2, scale) {
-    var pointDiff = diff(p1, p2);
-    pointDiff.x *= scale;
-    pointDiff.y *= scale;
-    return point(p1.x + pointDiff.x, p1.y + pointDiff.y);
+function angle(vec) {
+    return Math.atan2(vec.y, vec.x);
+}
+
+/**
+ * Get a point after scaling it relative to a reference point.
+ * Grows the vector referencePt -> pt by scaleBy.
+ * @param pt
+ * @param scaleBy
+ * @param referencePt The point from which to scale
+ * @returns {{x: *, y: *}}
+ */
+function scale(pt, scaleBy) {
+    var referencePt = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : origin;
+
+    return addVector(referencePt, diff(referencePt, pt), scaleBy);
 }
 
 /**
  * Treat points as vectors and add them, optionally after scaling p2
  * @param p1
  * @param p2
- * @param scale
+ * @param scaleBy
  * @returns {{x: *, y: *}}
  */
 function addVector(p1, p2) {
-    var scale = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
+    var scaleBy = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
 
-    return point(p1.x + p2.x * scale, p1.y + p2.y * scale);
+    return point(p1.x + p2.x * scaleBy, p1.y + p2.y * scaleBy);
 }
 
 /**
@@ -196,7 +199,7 @@ function addVector(p1, p2) {
  * @returns {{x: number, y: number}}
  */
 function getUnitVector(vec) {
-    var magnitude = norm(vec.x, vec.y);
+    var magnitude = norm(vec);
     return point(vec.x / magnitude, vec.y / magnitude);
 }
 
@@ -211,13 +214,47 @@ function getPerpendicularVector(vec) {
 }
 
 /**
+ * Remove any extra information from a point down to just x,y
+ */
+function extractPoint(pt) {
+    return point(pt.x, pt.y);
+}
+
+/**
+ * Remove any extra information from a point and reflect across y axis
+ */
+function reflect(pt) {
+    var m = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : Infinity;
+    var b = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
+
+    if (!pt) {
+        return pt;
+    }
+    var c = void 0,
+        cm = void 0;
+
+    // vertical line
+    if (m === Infinity) {
+        c = 0;
+        cm = 0;
+        // has no single y-intercept
+        b = pt.y;
+    } else {
+        c = (pt.x + (pt.y - b) * m) / (1 + m * m);
+        cm = c * m;
+    }
+
+    return point(2 * c - pt.x, 2 * cm - pt.y + 2 * b);
+}
+
+/**
  * Shift a draw point and its control points
  * @param {object} pt
  * @param {number} dx
  * @param {number} dy
  * @returns {object}
  */
-function adjustPoint(pt, dx, dy) {
+function adjust(pt, dx, dy) {
     if (!pt) {
         return pt;
     }
@@ -237,118 +274,97 @@ function adjustPoint(pt, dx, dy) {
 }
 
 /**
- * Shift a sequence of draw points points
+ * Shift a sequence of draw points
  * @param dx
  * @param dy
  * @param points
  * @returns {Array}
  */
-function shiftPoints(dx, dy) {
+function adjustPoints(dx, dy) {
     var shiftedPoints = [];
 
-    for (var _len2 = arguments.length, points = Array(_len2 > 2 ? _len2 - 2 : 0), _key2 = 2; _key2 < _len2; _key2++) {
-        points[_key2 - 2] = arguments[_key2];
+    for (var _len = arguments.length, points = Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+        points[_key - 2] = arguments[_key];
     }
 
     points.forEach(function (pt) {
-        shiftedPoints.push(adjustPoint(pt, dx, dy));
+        shiftedPoints.push(adjust(pt, dx, dy));
     });
     return shiftedPoints;
 }
 
 /**
- * Remove any extra information from a point down to just x,y
- */
-function extractPoint(pt) {
-    return pt(pt.x, pt.y);
-}
-
-/**
- * Remove any extra information from a point and reflect across y axis
- */
-function reflectPoint(pt) {
-    if (!pt) {
-        return pt;
-    }
-    return point(-pt.x, pt.y);
-}
-
-/**
  * Explode or shrink points around a center point
  * @param center The point other points are scaled relative to
- * @param scaleBy Multiplier for the distance between each point and center
+ * @param {number} scaleBy Multiplier for the distance between each point and center
  * @param points Points to scale relative to center
  */
 function scalePoints(center, scaleBy) {
-    for (var _len3 = arguments.length, points = Array(_len3 > 2 ? _len3 - 2 : 0), _key3 = 2; _key3 < _len3; _key3++) {
-        points[_key3 - 2] = arguments[_key3];
+    for (var _len2 = arguments.length, points = Array(_len2 > 2 ? _len2 - 2 : 0), _key2 = 2; _key2 < _len2; _key2++) {
+        points[_key2 - 2] = arguments[_key2];
     }
 
-    for (var i = 0; i < points.length; ++i) {
-        var p = points[i];
-        if (!p || p.hasOwnProperty("x") === false) {
-            continue;
+    points.forEach(function (pt) {
+        if (!pt || pt.hasOwnProperty("x") === false) {
+            return;
         }
 
-        var _scale = scale(center, p, scaleBy),
+        var _scale = scale(pt, scaleBy, center),
             x = _scale.x,
             y = _scale.y;
 
-        p.x = x;
-        p.y = y;
-        if (p.hasOwnProperty("cp1")) {
-            p.cp1 = scale(center, p.cp1, scaleBy);
+        pt.x = x;
+        pt.y = y;
+        if (pt.cp1) {
+            pt.cp1 = scale(pt.cp1, scaleBy, center);
         }
-        if (p.hasOwnProperty("cp2")) {
-            p.cp2 = scale(center, p.cp2, scaleBy);
+        if (pt.cp2) {
+            pt.cp2 = scale(pt.cp2, scaleBy, center);
         }
-    }
+    });
 }
 
 /**
- * Rotate a set of points about a pivot
+ * Rotate a set of points about a pivot in place
  * @param {object} pivot The point to rotate about
  * @param {number} rad Radians counterclockwise to rotate points
- * @param {object[]} points List of points to rotate about pivot
+ * @param points List of points to rotate about pivot
  */
 function rotatePoints(pivot, rad) {
     var cos = Math.cos(rad),
         sin = Math.sin(rad);
 
-    for (var _len4 = arguments.length, points = Array(_len4 > 2 ? _len4 - 2 : 0), _key4 = 2; _key4 < _len4; _key4++) {
-        points[_key4 - 2] = arguments[_key4];
+    for (var _len3 = arguments.length, points = Array(_len3 > 2 ? _len3 - 2 : 0), _key3 = 2; _key3 < _len3; _key3++) {
+        points[_key3 - 2] = arguments[_key3];
     }
 
-    for (var i = 0; i < points.length; ++i) {
-        var p = points[i];
-        if (!p || p.hasOwnProperty("x") === false) {
-            continue;
+    points.forEach(function (pt) {
+        if (!pt || pt.hasOwnProperty("x") === false) {
+            return;
         }
-        rotateDiff(pivot, p, sin, cos);
-        if (p.cp1) {
-            rotateDiff(pivot, p.cp1, sin, cos);
+        rotateDiff(pivot, pt, sin, cos);
+        if (pt.cp1) {
+            rotateDiff(pivot, pt.cp1, sin, cos);
         }
-        if (p.cp2) {
-            rotateDiff(pivot, p.cp2, sin, cos);
+        if (pt.cp2) {
+            rotateDiff(pivot, pt.cp2, sin, cos);
         }
-    }
+    });
 }
 
 /**
  * Helper for rotate points to be used with cached sin and cos
- * @param pivot
- * @param pt
- * @param sin
- * @param cos
+ * @param pivot Point around which to rotate
+ * @param pt Point to be rotated
+ * @param sin Cached sin(rad) to rotate by
+ * @param cos Cached cos(rad) to rotate by
  */
 function rotateDiff(pivot, pt, sin, cos) {
     var pointDiff = diff(pivot, pt);
-    pt.x -= pointDiff.x;
-    pt.y -= pointDiff.y;
-    pointDiff.dx = pointDiff.x * cos - pointDiff.y * sin;
-    pointDiff.dy = pointDiff.x * sin + pointDiff.y * cos;
-    pt.x += pointDiff.dx;
-    pt.y += pointDiff.dy;
+    var dx = pointDiff.x * cos - pointDiff.y * sin;
+    var dy = pointDiff.x * sin + pointDiff.y * cos;
+    pt.x = pivot.x + dx;
+    pt.y = pivot.y + dy;
 }
 
 /***/ }),
@@ -856,10 +872,11 @@ function transformCurve(startP1, startP2, endP1, endP2, t) {
 
 
 Object.defineProperty(exports, "__esModule", {
-  value: true
+    value: true
 });
 exports.deg = deg;
 exports.rad = rad;
+exports.unwrapRad = unwrapRad;
 exports.clamp = clamp;
 exports.roundToDec = roundToDec;
 /**
@@ -872,7 +889,7 @@ exports.roundToDec = roundToDec;
  * @returns {number}
  */
 function deg(radian) {
-  return 180 * radian / Math.PI;
+    return 180 * radian / Math.PI;
 }
 
 /**
@@ -881,7 +898,21 @@ function deg(radian) {
  * @returns {number}
  */
 function rad(degree) {
-  return degree * Math.PI / 180;
+    return degree * Math.PI / 180;
+}
+
+/**
+ * Unwrap a radian to its equivalent form between [-PI, PI]
+ * @param rad
+ */
+function unwrapRad(rad) {
+    while (rad > Math.PI) {
+        rad -= 2 * Math.PI;
+    }
+    while (rad < -Math.PI) {
+        rad += 2 * Math.PI;
+    }
+    return rad;
 }
 
 /**
@@ -892,7 +923,7 @@ function rad(degree) {
  * @returns {number} Clamped number
  */
 function clamp(num, min, max) {
-  return num < min ? min : num > max ? max : num;
+    return num < min ? min : num > max ? max : num;
 }
 
 /**
@@ -902,7 +933,7 @@ function clamp(num, min, max) {
  * @returns {number}
  */
 function roundToDec(num, numDecimals) {
-  return parseFloat(num.toFixed(numDecimals));
+    return parseFloat(num.toFixed(numDecimals));
 }
 
 /***/ }),
@@ -1375,15 +1406,15 @@ function reverseDrawPoint(start, end) {
  * For a bezier curve point, get a control point on the other side of the point so that the
  * curve is smooth.
  * @param {point} pt End point of a bezier curve (must have 2nd control point)
- * @param {number} scaleValue How much back to extend the continuing control point.
+ * @param {number} scaleBy How much back to extend the continuing control point.
  * A value of 1 produces a symmetric curve.
  * @returns {{x, y}|{x: number, y: number}|*} Continuing control point
  */
-function getSmoothControlPoint(pt, scaleValue) {
+function getSmoothControlPoint(pt, scaleBy) {
     if (pt.hasOwnProperty("cp2") === false) {
         throw new Error("point has no second control point; can't get smooth control point");
     }
-    return (0, _point.scale)(pt, pt.cp2, -scaleValue);
+    return (0, _point.scale)(pt.cp2, -scaleBy, pt);
 }
 
 /***/ }),
@@ -1409,14 +1440,14 @@ Object.keys(_util).forEach(function (key) {
   });
 });
 
-var _colour = __webpack_require__(4);
+var _color = __webpack_require__(4);
 
-Object.keys(_colour).forEach(function (key) {
+Object.keys(_color).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
   Object.defineProperty(exports, key, {
     enumerable: true,
     get: function get() {
-      return _colour[key];
+      return _color[key];
     }
   });
 });
