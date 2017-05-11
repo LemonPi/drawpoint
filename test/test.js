@@ -39,7 +39,7 @@ describe("Draw points", function () {
         describe("#extractRGB", function () {
             it("should correctly extract RGB values from strings", function () {
                 colors.forEach((color) => {
-                    assert.deepEqual(dp.extractRGB(`rgb(${color.r}, ${color.g}, ${color.b})`), color);
+                    assert.deepStrictEqual(dp.extractRGB(`rgb(${color.r}, ${color.g}, ${color.b})`), color);
                 });
             });
         });
@@ -47,7 +47,7 @@ describe("Draw points", function () {
         describe("#RGBToHSL, HSLToRGB", function () {
             it("should give back original RGB values if both are applied", function () {
                 colors.forEach((rgb) => {
-                    assert.deepEqual(dp.HSLToRGB(dp.RGBToHSL(rgb)), rgb);
+                    assert.deepStrictEqual(dp.HSLToRGB(dp.RGBToHSL(rgb)), rgb);
                 });
             });
         });
@@ -56,7 +56,7 @@ describe("Draw points", function () {
             it("should correctly extract RGB values from hex string", function () {
                 colors.forEach((rgb) => {
                     const hex = "#" + toPaddedHexString(rgb.r, 2) + toPaddedHexString(rgb.g, 2) + toPaddedHexString(rgb.b, 2);
-                    assert.deepEqual(dp.extractHex(hex), rgb);
+                    assert.deepStrictEqual(dp.extractHex(hex), rgb);
                 });
             });
         });
@@ -65,10 +65,10 @@ describe("Draw points", function () {
             it("should return identity when given no adjustment object", function () {
                 colors.forEach((rgb) => {
                     const hsl = dp.RGBToHSL(rgb);
-                    assert.notEqual(hsl, null);
+                    assert.notStrictEqual(hsl, null);
                     const adjusted = dp.adjustColor(rgb, {});
-                    assert.notEqual(adjusted, null);
-                    assert.deepEqual(dp.extractHSL(adjusted), hsl);
+                    assert.notStrictEqual(adjusted, null);
+                    assert.deepStrictEqual(dp.extractHSL(adjusted), hsl);
                 });
             });
         });
@@ -103,41 +103,42 @@ describe("Draw points", function () {
             }
             it("should not do anything when inside bounds", function () {
                 numbers.forEach((number)=> {
-                    assert.equal(dp.clamp(number, -101, 101), number);
+                    assert.strictEqual(dp.clamp(number, -101, 101), number);
                 });
             });
 
             it("should clamp to max when greater than max", function () {
                 numbers.forEach((number)=> {
-                    assert.equal(dp.clamp(number, -101, number - 1), number - 1);
+                    assert.strictEqual(dp.clamp(number, -101, number - 1), number - 1);
                 });
             });
             it("should clamp to min when less than min", function () {
                 numbers.forEach((number)=> {
-                    assert.equal(dp.clamp(number, number + 1, 101), number + 1);
+                    assert.strictEqual(dp.clamp(number, number + 1, 101), number + 1);
                 });
             });
         });
 
         describe("#roundToDec", function() {
             it("should round to integer with 0 or unspecified decimal places", function () {
-               assert.equal(dp.roundToDec(0.23, 0), 0);
-                assert.equal(dp.roundToDec(1.1),1);
+               assert.strictEqual(dp.roundToDec(0.23, 0), 0);
+                assert.strictEqual(dp.roundToDec(1.1),1);
             });
 
             it("should round negative numbers towards 0", function() {
-                assert.equal(dp.roundToDec(-0.49, 0), 0);
-                assert.equal(dp.roundToDec(-0.49, 1), -0.5);
+                assert.strictEqual(dp.roundToDec(-0.49, 0), 0);
+                assert.strictEqual(dp.roundToDec(-0.49, 1), -0.5);
             });
 
             it("should leave number as is if rounding to more decimals than given", function() {
-                assert.equal(dp.roundToDec(0.124, 10), 0.124);
+                assert.strictEqual(dp.roundToDec(0.124, 10), 0.124);
             });
 
             it("should round decimals rather than truncate them", function() {
-                assert.equal(dp.roundToDec(0.126, 2), 0.13);
+                assert.strictEqual(dp.roundToDec(0.126, 2), 0.13);
             });
         });
     });
-    
+
+ 
 });
