@@ -21,6 +21,20 @@ export function rad(degree) {
 }
 
 /**
+ * Unwrap a radian to its equivalent form between [-PI, PI]
+ * @param rad
+ */
+export function unwrapRad(rad) {
+    while (rad > Math.PI) {
+        rad -= 2 * Math.PI;
+    }
+    while (rad < -Math.PI) {
+        rad += 2 * Math.PI;
+    }
+    return rad;
+}
+
+/**
  * Clamp a number between a minimum and maximum value
  * @param {number} num
  * @param {number} min
