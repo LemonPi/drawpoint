@@ -73,7 +73,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	__webpack_require__.p = "/";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 5);
+/******/ 	return __webpack_require__(__webpack_require__.s = 6);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -86,6 +86,7 @@ return /******/ (function(modules) { // webpackBootstrap
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
+exports.endPoint = exports.breakPoint = undefined;
 exports.point = point;
 exports.averagePoint = averagePoint;
 exports.diff = diff;
@@ -101,11 +102,32 @@ exports.reflectPoint = reflectPoint;
 exports.scalePoints = scalePoints;
 exports.rotatePoints = rotatePoints;
 
-var _util = __webpack_require__(1);
+var _util = __webpack_require__(2);
 
 function point(x, y) {
     return { x: x, y: y };
 }
+
+/**
+ * Insert this special point in the list of points given to drawPoints to
+ * move to the next point instead of drawing to the next point
+ * @readonly
+ * @type {Object}
+ */
+var breakPoint = exports.breakPoint = Object.freeze({
+    break: true
+});
+
+/**
+ * Signals for a fill path to not try to complete it by drawing a curve from end
+ * point to first point as the fill has already done its job
+ * move to the next point instead of drawing to the next point
+ * @readonly
+ * @type {Object}
+ */
+var endPoint = exports.endPoint = Object.freeze({
+    end: true
+});
 
 function averagePoint(p1, p2) {
     var bias = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0.5;
@@ -174,6 +196,11 @@ function getUnitVector(vec) {
     return point(vec.x / magnitude, vec.y / magnitude);
 }
 
+/**
+ * Get counterclockwise perpendicular unit vector
+ * @param vec Point that doubles as a vector from (0,0) to the point
+ * @returns {{x: number, y: number}}
+ */
 function getPerpendicularVector(vec) {
     // rotate counterclockwise by 90 degrees
     return getUnitVector(point(-vec.y, vec.x));
@@ -330,475 +357,18 @@ function rotateDiff(pivot, pt, sin, cos) {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-exports.clone = clone;
-/**
- * Created by johnson on 10.05.17.
- */
 
-function clone(obj) {
-    if (obj) {
-        return JSON.parse(JSON.stringify(obj));
-    } else {
-        return obj;
-    }
-}
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }(); /**
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          * Created by johnson on 11.05.17.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          */
 
-/***/ }),
-/* 2 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-exports.extractRGB = extractRGB;
-exports.extractHSL = extractHSL;
-exports.extractHex = extractHex;
-exports.RGBToHSL = RGBToHSL;
-exports.HSLToRGB = HSLToRGB;
-exports.adjustColor = adjustColor;
-/**
- * Created by Johnson on 2017-04-02.
- */
-
-/**
- * Extract numeric RGB values from a HTML compatible string (whitespace ignored)
- * @param {string} rgbString RGB string in the format "rgb(100,220,42)"
- * @returns {(object|null)} Either an object holding r,g,b properties, or null if not matched
- */
-function extractRGB(rgbString) {
-    var rgb = /rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/.exec(rgbString);
-    if (rgb) {
-        return {
-            r: parseInt(rgb[1]),
-            g: parseInt(rgb[2]),
-            b: parseInt(rgb[3])
-        };
-    }
-    return null;
-}
-
-/**
- * Extract numeric HSL values from a HTML compatible string (whitespace ignored)
- * @param {string} hslString HSL string in the format "hsl(310,12%,25%)"
- * @returns {(object|null)} Either an object holding h,s,l properties, or null if not matched
- */
-function extractHSL(hslString) {
-    var hsl = /hsl\(\s*([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)%\s*,\s*([+-]?\d+(?:\.\d+)?)%\s*\)/.exec(hslString);
-    if (hsl) {
-        return {
-            h: parseFloat(hsl[1]),
-            s: parseFloat(hsl[2]),
-            l: parseFloat(hsl[3])
-        };
-    }
-    return null;
-}
-
-/**
- * Extract numeric RGB values from a HTML compatible hex string (whitespace ignored)
- * @param {string} hexString Hex string in the format "#ffaabc"
- * @returns {(object|null)} Either an object holding r,g,b properties, or null if not matched
- */
-function extractHex(hexString) {
-    var rgb = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hexString);
-    if (rgb) {
-        return {
-            r: parseInt(rgb[1], 16),
-            g: parseInt(rgb[2], 16),
-            b: parseInt(rgb[3], 16)
-        };
-    }
-    return null;
-}
-
-/**
- * Convert an RGB object to HSL object, which are more intuitive to modify.
- * Adapted from https://github.com/mjackson/
- * @param {object} rgb RGB object holding r,g,b properties (each [0,255])
- * @returns {object} HSL object holding h,s,l properties (h [0,360], s,l [0,100])
- */
-function RGBToHSL(rgb) {
-    var r = void 0,
-        g = void 0,
-        b = void 0;
-    var _ref = [rgb.r, rgb.g, rgb.b];
-    r = _ref[0];
-    g = _ref[1];
-    b = _ref[2];
-
-    r /= 255;
-    g /= 255;
-    b /= 255;
-    var max = Math.max(r, g, b),
-        min = Math.min(r, g, b);
-    var h = void 0,
-        s = void 0,
-        l = (max + min) / 2;
-
-    if (max == min) {
-        h = s = 0; // achromatic
-    } else {
-        var d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch (max) {
-            case r:
-                h = (g - b) / d + (g < b ? 6 : 0);
-                break;
-            case g:
-                h = (b - r) / d + 2;
-                break;
-            case b:
-                h = (r - g) / d + 4;
-                break;
-            default:
-                break;
-        }
-        h /= 6;
-    }
-    h *= 360;
-    s *= 100;
-    l *= 100;
-
-    return rgb.hasOwnProperty("a") ? {
-        h: h,
-        s: s,
-        l: l,
-        a: rgb.a
-    } : {
-        h: h,
-        s: s,
-        l: l
-    };
-}
-
-/**
- * Converts an HSL color value to RGB
- * Adapted from https://github.com/mjackson/
- * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
- * @param {object} hsl HSL object holding h,s,l properties (h [0,360], s,l [0,100])
- * @returns {object} RGB object holding r,g,b properties (each [0,255])
- */
-function HSLToRGB(hsl) {
-    var h = hsl.h,
-        s = hsl.s,
-        l = hsl.l;
-
-    h /= 360;
-    s /= 100;
-    l /= 100;
-
-    var r = void 0,
-        g = void 0,
-        b = void 0;
-
-    if (s == 0) {
-        r = g = b = l; // achromatic
-    } else {
-        var hue2rgb = function hue2rgb(p, q, t) {
-            if (t < 0) t += 1;
-            if (t > 1) t -= 1;
-            if (t < 1 / 6) return p + (q - p) * 6 * t;
-            if (t < 1 / 2) return q;
-            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-            return p;
-        };
-
-        var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-        var p = 2 * l - q;
-        r = hue2rgb(p, q, h + 1 / 3);
-        g = hue2rgb(p, q, h);
-        b = hue2rgb(p, q, h - 1 / 3);
-    }
-
-    r = Math.round(r * 255);
-    g = Math.round(g * 255);
-    b = Math.round(b * 255);
-    return hsl.hasOwnProperty("a") ? {
-        r: r,
-        g: g,
-        b: b,
-        a: hsl.a
-    } : {
-        r: r,
-        g: g,
-        b: b
-    };
-}
-
-/**
- * Adjust an existing color into a new color
- * @param color A color in RGB, hex, or HSL form
- * @param adjustment Object with h, s, l, and optionally a as properties for how much to modify them by (addition)
- */
-function adjustColor(color, adjustment) {
-    // convert everything to HSL
-    var hsl = null;
-    if (typeof color === "string") {
-        // get the first non-null result
-        hsl = extractHSL(color);
-        if (hsl === null) {
-            hsl = hsl || extractRGB(color);
-            hsl = hsl || extractHex(color);
-            // have an RGB value
-            if (hsl) {
-                hsl = RGBToHSL(hsl);
-            }
-        }
-    } else if (color.hasOwnProperty("h") && color.hasOwnProperty("s") && color.hasOwnProperty("l")) {
-        hsl = color;
-    } else if (color.hasOwnProperty("r") && color.hasOwnProperty("g") && color.hasOwnProperty("b")) {
-        hsl = RGBToHSL(color);
-    }
-
-    // can't do it
-    if (hsl === null) {
-        return null;
-    }
-    hsl.h += adjustment.h || 0;
-    hsl.s += adjustment.s || 0;
-    hsl.l += adjustment.l || 0;
-    if (adjustment.hasOwnProperty("a")) {
-        return "hsla(" + hsl.h + "," + hsl.s + "%," + hsl.l + "%," + adjustment.a + ")";
-    } else {
-        return "hsl(" + hsl.h + "," + hsl.s + "%," + hsl.l + "%)";
-    }
-    // if (adjustment.hasOwnProperty("a")) {
-    //     return `hsla(${hsl.h.toFixed(1)},${hsl.s.toFixed(1)}%,${hsl.l.toFixed(1)}%,${adjustment.a.toFixed(
-    //         2)})`;
-    // } else {
-    //     return `hsl(${hsl.h.toFixed(1)},${hsl.s.toFixed(1)}%,${hsl.l.toFixed(1)}%)`;
-    // }
-}
-
-/***/ }),
-/* 3 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-exports.none = exports.endPoint = exports.breakPoint = undefined;
-
-var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
-
-exports.fillerDefinition = fillerDefinition;
-exports.drawPoints = drawPoints;
-exports.drawCircle = drawCircle;
-exports.drawSpecificCurl = drawSpecificCurl;
-exports.tracePoint = tracePoint;
 exports.splitCurve = splitCurve;
 exports.interpolateCurve = interpolateCurve;
 exports.simpleQuadratic = simpleQuadratic;
 exports.getCubicControlPoints = getCubicControlPoints;
 exports.transformCurve = transformCurve;
-exports.reverseDrawPoint = reverseDrawPoint;
-exports.getSmoothControlPoint = getSmoothControlPoint;
 
 var _point = __webpack_require__(0);
-
-/**
- * Insert this special point in the list of points given to draw points to
- * move to the next point instead of drawing to the next point
- * @readonly
- * @type {Object}
- */
-var breakPoint = exports.breakPoint = Object.freeze({
-    break: true
-});
-
-/**
- * Signals for a fill path to not try to complete it by drawing a curve from end
- * point to first point as the fill has already done its job
- * move to the next point instead of drawing to the next point
- * @readonly
- * @type {Object}
- */
-var endPoint = exports.endPoint = Object.freeze({
-    end: true
-});
-
-/**
- * Styling option to not show stroke or fill
- * @readonly
- * @type {string}
- */
-var none = exports.none = "rgba(0,0,0,0)";
-
-/**
- * Define a draw point if it doesn't exist already
- * @param {object} ex Export holding draw points
- * @param {string} drawPointName Name of the location
- * @param {object} definition Object holding x, y, cp1, and cp2
- */
-function fillerDefinition(ex, drawPointName) {
-    var definition = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
-
-    if (ex.hasOwnProperty(drawPointName)) {
-        return;
-    }
-    ex[drawPointName] = definition;
-}
-
-/**
- * Draw the path formed by the list of drawpoints
- * @param {Context2DTracked} ctx Context2D to render to, if it exists
- * @param {Object[]} points Ordered list of draw points, each with x and y
- */
-function drawPoints(ctx) {
-    for (var _len = arguments.length, points = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-        points[_key - 1] = arguments[_key];
-    }
-
-    // given ctx and a list of points, draw points between them based on how many control points
-    // are defined for each
-    // does not begin a path or fill or stroke (just moves pen between the points)
-    if (points.length < 1) {
-        return;
-    }
-    var startPoint = points[0];
-    // if null is passed through, just continue from last location
-    if (startPoint) {
-        if (startPoint === breakPoint) {
-            startPoint = points[1];
-        }
-        if (startPoint && startPoint.hasOwnProperty("x")) {
-            ctx.moveTo(startPoint.x, startPoint.y);
-        }
-    }
-    // for every point after
-    for (var i = 1, len = points.length; i < len; ++i) {
-        var p = points[i];
-        // allow calls with nonexistent points so that different drawing modes can be
-        // consolidated
-        if (!p) {
-            // console.log("don't have point #", i);
-            continue;
-        }
-        if (p === breakPoint) {
-            ++i;
-            if (i < points.length) {
-                p = points[i];
-                ctx.moveTo(p.x, p.y);
-            }
-        } else if (p.cp2 && p.cp1) {
-            ctx.bezierCurveTo(p.cp1.x, p.cp1.y, p.cp2.x, p.cp2.y, p.x, p.y, p.traceOptions);
-        } else if (p.cp1) {
-            ctx.quadraticCurveTo(p.cp1.x, p.cp1.y, p.x, p.y, p.traceOptions);
-        } else if (p.cp2) {
-            ctx.quadraticCurveTo(p.cp2.x, p.cp2.y, p.x, p.y, p.traceOptions);
-        } else if (p.hasOwnProperty("x")) {
-            ctx.lineTo(p.x, p.y);
-        }
-    }
-}
-
-/**
- * Get the drawpoints for a circle
- * @param {object} center Point at the center of the circle
- * @param {number} radius Radius in cm
- * @returns {object[]} List of draw points for this circle (could be passed to guiMenuItem)
- */
-function drawCircle(center, radius) {
-    var stretch = 0.552284749831 * radius;
-    var top = {
-        x: center.x,
-        y: center.y + radius
-    };
-    var right = {
-        x: center.x + radius,
-        y: center.y
-    };
-    var bot = {
-        x: center.x,
-        y: center.y - radius
-    };
-    var left = {
-        x: center.x - radius,
-        y: center.y
-    };
-    top.cp1 = {
-        x: left.x,
-        y: left.y + stretch
-    };
-    top.cp2 = {
-        x: top.x - stretch,
-        y: top.y
-    };
-    right.cp1 = {
-        x: top.x + stretch,
-        y: top.y
-    };
-    right.cp2 = {
-        x: right.x,
-        y: right.y + stretch
-    };
-    bot.cp1 = {
-        x: right.x,
-        y: right.y - stretch
-    };
-    bot.cp2 = {
-        x: bot.x + stretch,
-        y: bot.y
-    };
-    left.cp1 = {
-        x: bot.x - stretch,
-        y: bot.y
-    };
-    left.cp2 = {
-        x: left.x,
-        y: left.y - stretch
-    };
-    // doesn't actually matter in which order you draw them
-    return [top, right, bot, left, top];
-}
-
-function drawSpecificCurl(left, center, right) {
-    var p1 = (0, _point.extractPoint)(left);
-    var p2 = (0, _point.extractPoint)(center);
-    var p3 = (0, _point.extractPoint)(right);
-
-    {
-        var _left$t = left.t,
-            t = _left$t === undefined ? 0.5 : _left$t,
-            _left$deflection = left.deflection,
-            deflection = _left$deflection === undefined ? 0.5 : _left$deflection;
-
-        p2.cp1 = simpleQuadratic(p1, p2, t, deflection);
-    }
-    {
-        var _right$t = right.t,
-            _t = _right$t === undefined ? 0.5 : _right$t,
-            _right$deflection = right.deflection,
-            _deflection = _right$deflection === undefined ? 0.5 : _right$deflection;
-
-        p3.cp1 = simpleQuadratic(p1, p2, _t, _deflection);
-    }
-    return [p1, p2, p3];
-}
-
-/**
- * Debug the curve going into a drawpoint. Use by wrapping a drawpoint with it when returning
- * to guiMenuItem.
- * @param {object} pt
- * @param {object} traceOptions Options for how to show the points
- * @returns {*}
- */
-function tracePoint(pt, options) {
-    if (!options) {
-        options = { radius: 1 };
-    } else if (typeof options === "number") {
-        // convenience for defining radius of trace point
-        options = { radius: options };
-    }
-    pt.traceOptions = { point: options };
-    return pt;
-}
 
 function splitBezier(points, t) {
     // split a cubic bezier based on De Casteljau, t is between [0,1]
@@ -1029,9 +599,9 @@ function solveCubicEquation(a, b, c) {
         var sqrtDiscriminant = Math.sqrt(discriminant);
         var u = cubeRoot(-q2 + sqrtDiscriminant);
         var v = cubeRoot(q2 + sqrtDiscriminant);
-        var _x2 = u - v - a3;
+        var _x = u - v - a3;
         // ignore other imaginary roots
-        return [_x2];
+        return [_x];
     }
 
     // all roots real (3 in total, 1 single and 1 double)
@@ -1039,10 +609,10 @@ function solveCubicEquation(a, b, c) {
         // v = -u
         var _u = cubeRoot(-q2);
         // t = u - v, x = t - a/3 = u - v - a/3 = 2u - a/3
-        var _x3 = 2 * _u - a3;
+        var _x2 = 2 * _u - a3;
         // conjugate roots produce 1 double root
-        var _x4 = -_u - a3;
-        return [_x3, _x4];
+        var _x3 = -_u - a3;
+        return [_x2, _x3];
     }
 
     // all roots are real and different (unpleasant imaginary discriminant)
@@ -1111,30 +681,30 @@ function getCubicValue(t, a, b, c, d) {
     return a * (1 - t) * (1 - t) * (1 - t) + 3 * b * (1 - t) * (1 - t) * t + 3 * c * (1 - t) * t * t + d * t * t * t;
 }
 
-function interpolateCurve(startp, endp, betweenPoint) {
+function interpolateCurve(p1, p2, betweenPoint) {
     var v = void 0,
         t = void 0;
-    if (endp.cp2) {
+    if (p2.cp2) {
         if (betweenPoint.x === null) {
-            var _interpolateCubic = interpolateCubic(startp.y, endp.cp1.y, endp.cp2.y, endp.y, betweenPoint.y);
+            var _interpolateCubic = interpolateCubic(p1.y, p2.cp1.y, p2.cp2.y, p2.y, betweenPoint.y);
 
             var _interpolateCubic2 = _slicedToArray(_interpolateCubic, 1);
 
             t = _interpolateCubic2[0];
 
-            betweenPoint.x = getCubicValue(t, startp.x, endp.cp1.x, endp.cp2.x, endp.x);
+            betweenPoint.x = getCubicValue(t, p1.x, p2.cp1.x, p2.cp2.x, p2.x);
         } else if (betweenPoint.y === null) {
-            var _interpolateCubic3 = interpolateCubic(startp.x, endp.cp1.x, endp.cp2.x, endp.x, betweenPoint.x);
+            var _interpolateCubic3 = interpolateCubic(p1.x, p2.cp1.x, p2.cp2.x, p2.x, betweenPoint.x);
 
             var _interpolateCubic4 = _slicedToArray(_interpolateCubic3, 1);
 
             t = _interpolateCubic4[0];
 
-            betweenPoint.y = getCubicValue(t, startp.y, endp.cp1.y, endp.cp2.y, endp.y);
+            betweenPoint.y = getCubicValue(t, p1.y, p2.cp1.y, p2.cp2.y, p2.y);
         }
-    } else if (endp.cp1) {
+    } else if (p2.cp1) {
         if (betweenPoint.x === null) {
-            var _interpolateQuadratic = interpolateQuadratic(startp.y, endp.y, endp.cp1.y, betweenPoint.y);
+            var _interpolateQuadratic = interpolateQuadratic(p1.y, p2.y, p2.cp1.y, betweenPoint.y);
 
             var _interpolateQuadratic2 = _slicedToArray(_interpolateQuadratic, 2);
 
@@ -1143,7 +713,7 @@ function interpolateCurve(startp, endp, betweenPoint) {
 
             betweenPoint.x = v;
         } else if (betweenPoint.y === null) {
-            var _interpolateQuadratic3 = interpolateQuadratic(startp.x, endp.x, endp.cp1.x, betweenPoint.x);
+            var _interpolateQuadratic3 = interpolateQuadratic(p1.x, p2.x, p2.cp1.x, betweenPoint.x);
 
             var _interpolateQuadratic4 = _slicedToArray(_interpolateQuadratic3, 2);
 
@@ -1154,7 +724,7 @@ function interpolateCurve(startp, endp, betweenPoint) {
         }
     } else {
         if (betweenPoint.x === null) {
-            var _interpolateLinear = interpolateLinear(startp.y, endp.y, betweenPoint.y);
+            var _interpolateLinear = interpolateLinear(p1.y, p2.y, betweenPoint.y);
 
             var _interpolateLinear2 = _slicedToArray(_interpolateLinear, 2);
 
@@ -1163,7 +733,7 @@ function interpolateCurve(startp, endp, betweenPoint) {
 
             betweenPoint.x = v;
         } else if (betweenPoint.y === null) {
-            var _interpolateLinear3 = interpolateLinear(startp.x, endp.x, betweenPoint.x);
+            var _interpolateLinear3 = interpolateLinear(p1.x, p2.x, betweenPoint.x);
 
             var _interpolateLinear4 = _slicedToArray(_interpolateLinear3, 2);
 
@@ -1276,6 +846,453 @@ function transformCurve(startP1, startP2, endP1, endP2, t) {
     };
 }
 
+/***/ }),
+/* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.clone = clone;
+exports.fillerDefinition = fillerDefinition;
+/**
+ * Created by johnson on 10.05.17.
+ */
+
+function clone(obj) {
+    if (obj) {
+        return JSON.parse(JSON.stringify(obj));
+    } else {
+        return obj;
+    }
+}
+
+/**
+ * Define a draw point if it doesn't exist already
+ * @param {object} ex Export holding draw points
+ * @param {string} drawPointName Name of the location
+ * @param {object} definition Object holding x, y, cp1, and cp2
+ */
+function fillerDefinition(ex, drawPointName) {
+    var definition = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
+    if (ex.hasOwnProperty(drawPointName)) {
+        return;
+    }
+    ex[drawPointName] = definition;
+}
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.extractRGB = extractRGB;
+exports.extractHSL = extractHSL;
+exports.extractHex = extractHex;
+exports.RGBToHSL = RGBToHSL;
+exports.HSLToRGB = HSLToRGB;
+exports.adjustColor = adjustColor;
+/**
+ * Created by Johnson on 2017-04-02.
+ */
+
+/**
+ * Extract numeric RGB values from a HTML compatible string (whitespace ignored)
+ * @param {string} rgbString RGB string in the format "rgb(100,220,42)"
+ * @returns {(object|null)} Either an object holding r,g,b properties, or null if not matched
+ */
+function extractRGB(rgbString) {
+    var rgb = /rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/.exec(rgbString);
+    if (rgb) {
+        return {
+            r: parseInt(rgb[1]),
+            g: parseInt(rgb[2]),
+            b: parseInt(rgb[3])
+        };
+    }
+    return null;
+}
+
+/**
+ * Extract numeric HSL values from a HTML compatible string (whitespace ignored)
+ * @param {string} hslString HSL string in the format "hsl(310,12%,25%)"
+ * @returns {(object|null)} Either an object holding h,s,l properties, or null if not matched
+ */
+function extractHSL(hslString) {
+    var hsl = /hsl\(\s*([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)%\s*,\s*([+-]?\d+(?:\.\d+)?)%\s*\)/.exec(hslString);
+    if (hsl) {
+        return {
+            h: parseFloat(hsl[1]),
+            s: parseFloat(hsl[2]),
+            l: parseFloat(hsl[3])
+        };
+    }
+    return null;
+}
+
+/**
+ * Extract numeric RGB values from a HTML compatible hex string (whitespace ignored)
+ * @param {string} hexString Hex string in the format "#ffaabc"
+ * @returns {(object|null)} Either an object holding r,g,b properties, or null if not matched
+ */
+function extractHex(hexString) {
+    var rgb = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hexString);
+    if (rgb) {
+        return {
+            r: parseInt(rgb[1], 16),
+            g: parseInt(rgb[2], 16),
+            b: parseInt(rgb[3], 16)
+        };
+    }
+    return null;
+}
+
+/**
+ * Convert an RGB object to HSL object, which are more intuitive to modify.
+ * Adapted from https://github.com/mjackson/
+ * @param {object} rgb RGB object holding r,g,b properties (each [0,255])
+ * @returns {object} HSL object holding h,s,l properties (h [0,360], s,l [0,100])
+ */
+function RGBToHSL(rgb) {
+    var r = void 0,
+        g = void 0,
+        b = void 0;
+    var _ref = [rgb.r, rgb.g, rgb.b];
+    r = _ref[0];
+    g = _ref[1];
+    b = _ref[2];
+
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    var max = Math.max(r, g, b),
+        min = Math.min(r, g, b);
+    var h = void 0,
+        s = void 0,
+        l = (max + min) / 2;
+
+    if (max == min) {
+        h = s = 0; // achromatic
+    } else {
+        var d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+            case r:
+                h = (g - b) / d + (g < b ? 6 : 0);
+                break;
+            case g:
+                h = (b - r) / d + 2;
+                break;
+            case b:
+                h = (r - g) / d + 4;
+                break;
+            default:
+                break;
+        }
+        h /= 6;
+    }
+    h *= 360;
+    s *= 100;
+    l *= 100;
+
+    return rgb.hasOwnProperty("a") ? {
+        h: h,
+        s: s,
+        l: l,
+        a: rgb.a
+    } : {
+        h: h,
+        s: s,
+        l: l
+    };
+}
+
+/**
+ * Converts an HSL color value to RGB
+ * Adapted from https://github.com/mjackson/
+ * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
+ * @param {object} hsl HSL object holding h,s,l properties (h [0,360], s,l [0,100])
+ * @returns {object} RGB object holding r,g,b properties (each [0,255])
+ */
+function HSLToRGB(hsl) {
+    var h = hsl.h,
+        s = hsl.s,
+        l = hsl.l;
+
+    h /= 360;
+    s /= 100;
+    l /= 100;
+
+    var r = void 0,
+        g = void 0,
+        b = void 0;
+
+    if (s == 0) {
+        r = g = b = l; // achromatic
+    } else {
+        var hue2rgb = function hue2rgb(p, q, t) {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        };
+
+        var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        var p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1 / 3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1 / 3);
+    }
+
+    r = Math.round(r * 255);
+    g = Math.round(g * 255);
+    b = Math.round(b * 255);
+    return hsl.hasOwnProperty("a") ? {
+        r: r,
+        g: g,
+        b: b,
+        a: hsl.a
+    } : {
+        r: r,
+        g: g,
+        b: b
+    };
+}
+
+/**
+ * Adjust an existing color into a new color
+ * @param color A color in RGB, hex, or HSL form
+ * @param adjustment Object with h, s, l, and optionally a as properties for how much to modify them by (addition)
+ */
+function adjustColor(color, adjustment) {
+    // convert everything to HSL
+    var hsl = null;
+    if (typeof color === "string") {
+        // get the first non-null result
+        hsl = extractHSL(color);
+        if (hsl === null) {
+            hsl = hsl || extractRGB(color);
+            hsl = hsl || extractHex(color);
+            // have an RGB value
+            if (hsl) {
+                hsl = RGBToHSL(hsl);
+            }
+        }
+    } else if (color.hasOwnProperty("h") && color.hasOwnProperty("s") && color.hasOwnProperty("l")) {
+        hsl = color;
+    } else if (color.hasOwnProperty("r") && color.hasOwnProperty("g") && color.hasOwnProperty("b")) {
+        hsl = RGBToHSL(color);
+    }
+
+    // can't do it
+    if (hsl === null) {
+        return null;
+    }
+    hsl.h += adjustment.h || 0;
+    hsl.s += adjustment.s || 0;
+    hsl.l += adjustment.l || 0;
+    if (adjustment.hasOwnProperty("a")) {
+        return "hsla(" + hsl.h + "," + hsl.s + "%," + hsl.l + "%," + adjustment.a + ")";
+    } else {
+        return "hsl(" + hsl.h + "," + hsl.s + "%," + hsl.l + "%)";
+    }
+}
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.none = undefined;
+exports.drawPoints = drawPoints;
+exports.drawCircle = drawCircle;
+exports.drawSpecificCurl = drawSpecificCurl;
+exports.tracePoint = tracePoint;
+exports.reverseDrawPoint = reverseDrawPoint;
+exports.getSmoothControlPoint = getSmoothControlPoint;
+
+var _point = __webpack_require__(0);
+
+var _curve = __webpack_require__(1);
+
+/**
+ * Styling option to not show stroke or fill
+ * @readonly
+ * @type {string}
+ */
+var none = exports.none = "rgba(0,0,0,0)";
+
+/**
+ * Draw the path formed by the list of drawpoints
+ * @param {Context2DTracked} ctx Context2D to render to, if it exists
+ * @param {Object[]} points Ordered list of draw points, each with x and y
+ */
+function drawPoints(ctx) {
+    for (var _len = arguments.length, points = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+        points[_key - 1] = arguments[_key];
+    }
+
+    // given ctx and a list of points, draw points between them based on how many control points
+    // are defined for each
+    // does not begin a path or fill or stroke (just moves pen between the points)
+    if (points.length < 1) {
+        return;
+    }
+    var startPoint = points[0];
+    // if null is passed through, just continue from last location
+    if (startPoint) {
+        if (startPoint === _point.breakPoint) {
+            startPoint = points[1];
+        }
+        if (startPoint && startPoint.hasOwnProperty("x")) {
+            ctx.moveTo(startPoint.x, startPoint.y);
+        }
+    }
+    // for every point after
+    for (var i = 1, len = points.length; i < len; ++i) {
+        var p = points[i];
+        // allow calls with nonexistent points so that different drawing modes can be
+        // consolidated
+        if (!p) {
+            // console.log("don't have point #", i);
+            continue;
+        }
+        if (p === _point.breakPoint) {
+            ++i;
+            if (i < points.length) {
+                p = points[i];
+                ctx.moveTo(p.x, p.y);
+            }
+        } else if (p.cp2 && p.cp1) {
+            ctx.bezierCurveTo(p.cp1.x, p.cp1.y, p.cp2.x, p.cp2.y, p.x, p.y, p.traceOptions);
+        } else if (p.cp1) {
+            ctx.quadraticCurveTo(p.cp1.x, p.cp1.y, p.x, p.y, p.traceOptions);
+        } else if (p.cp2) {
+            ctx.quadraticCurveTo(p.cp2.x, p.cp2.y, p.x, p.y, p.traceOptions);
+        } else if (p.hasOwnProperty("x")) {
+            ctx.lineTo(p.x, p.y);
+        }
+    }
+}
+
+/**
+ * Get the drawpoints for a circle
+ * @param {object} center Point at the center of the circle
+ * @param {number} radius Radius in cm
+ * @returns {object[]} List of draw points for this circle (could be passed to guiMenuItem)
+ */
+function drawCircle(center, radius) {
+    var stretch = 0.552284749831 * radius;
+    var top = {
+        x: center.x,
+        y: center.y + radius
+    };
+    var right = {
+        x: center.x + radius,
+        y: center.y
+    };
+    var bot = {
+        x: center.x,
+        y: center.y - radius
+    };
+    var left = {
+        x: center.x - radius,
+        y: center.y
+    };
+    top.cp1 = {
+        x: left.x,
+        y: left.y + stretch
+    };
+    top.cp2 = {
+        x: top.x - stretch,
+        y: top.y
+    };
+    right.cp1 = {
+        x: top.x + stretch,
+        y: top.y
+    };
+    right.cp2 = {
+        x: right.x,
+        y: right.y + stretch
+    };
+    bot.cp1 = {
+        x: right.x,
+        y: right.y - stretch
+    };
+    bot.cp2 = {
+        x: bot.x + stretch,
+        y: bot.y
+    };
+    left.cp1 = {
+        x: bot.x - stretch,
+        y: bot.y
+    };
+    left.cp2 = {
+        x: left.x,
+        y: left.y - stretch
+    };
+    // doesn't actually matter in which order you draw them
+    return [top, right, bot, left, top];
+}
+
+function drawSpecificCurl(left, center, right) {
+    var p1 = (0, _point.extractPoint)(left);
+    var p2 = (0, _point.extractPoint)(center);
+    var p3 = (0, _point.extractPoint)(right);
+
+    {
+        var _left$t = left.t,
+            t = _left$t === undefined ? 0.5 : _left$t,
+            _left$deflection = left.deflection,
+            deflection = _left$deflection === undefined ? 0.5 : _left$deflection;
+
+        p2.cp1 = (0, _curve.simpleQuadratic)(p1, p2, t, deflection);
+    }
+    {
+        var _right$t = right.t,
+            _t = _right$t === undefined ? 0.5 : _right$t,
+            _right$deflection = right.deflection,
+            _deflection = _right$deflection === undefined ? 0.5 : _right$deflection;
+
+        p3.cp1 = (0, _curve.simpleQuadratic)(p1, p2, _t, _deflection);
+    }
+    return [p1, p2, p3];
+}
+
+/**
+ * Debug the curve going into a drawpoint. Use by wrapping a drawpoint with it when returning
+ * to guiMenuItem.
+ * @param {object} pt
+ * @param {object} traceOptions Options for how to show the points
+ * @returns {*}
+ */
+function tracePoint(pt, options) {
+    if (!options) {
+        options = { radius: 1 };
+    } else if (typeof options === "number") {
+        // convenience for defining radius of trace point
+        options = { radius: options };
+    }
+    pt.traceOptions = { point: options };
+    return pt;
+}
+
 /**
  * Given a curve defined by (start, end), return a draw point such that (end, returned point) looks identical,
  * but travels in the opposite direction.
@@ -1311,7 +1328,7 @@ function getSmoothControlPoint(pt, scaleValue) {
 }
 
 /***/ }),
-/* 4 */
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1368,7 +1385,7 @@ function roundToDec(num, numDecimals) {
 }
 
 /***/ }),
-/* 5 */
+/* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1378,7 +1395,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _util = __webpack_require__(1);
+var _util = __webpack_require__(2);
 
 Object.keys(_util).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -1390,7 +1407,7 @@ Object.keys(_util).forEach(function (key) {
   });
 });
 
-var _colour = __webpack_require__(2);
+var _colour = __webpack_require__(3);
 
 Object.keys(_colour).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -1402,7 +1419,7 @@ Object.keys(_colour).forEach(function (key) {
   });
 });
 
-var _numeric = __webpack_require__(4);
+var _numeric = __webpack_require__(5);
 
 Object.keys(_numeric).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -1426,7 +1443,19 @@ Object.keys(_point).forEach(function (key) {
   });
 });
 
-var _draw = __webpack_require__(3);
+var _curve = __webpack_require__(1);
+
+Object.keys(_curve).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _curve[key];
+    }
+  });
+});
+
+var _draw = __webpack_require__(4);
 
 Object.keys(_draw).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;

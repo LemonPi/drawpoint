@@ -6,6 +6,27 @@ export function point(x, y) {
     return {x, y};
 }
 
+/**
+ * Insert this special point in the list of points given to drawPoints to
+ * move to the next point instead of drawing to the next point
+ * @readonly
+ * @type {Object}
+ */
+export const breakPoint = Object.freeze({
+    break: true
+});
+
+/**
+ * Signals for a fill path to not try to complete it by drawing a curve from end
+ * point to first point as the fill has already done its job
+ * move to the next point instead of drawing to the next point
+ * @readonly
+ * @type {Object}
+ */
+export const endPoint = Object.freeze({
+    end: true
+});
+
 export function averagePoint(p1, p2, bias = 0.5) {
     return point(
         p1.x * (1 - bias) + p2.x * bias,
@@ -84,6 +105,11 @@ export function getUnitVector(vec) {
     );
 }
 
+/**
+ * Get counterclockwise perpendicular unit vector
+ * @param vec Point that doubles as a vector from (0,0) to the point
+ * @returns {{x: number, y: number}}
+ */
 export function getPerpendicularVector(vec) {
     // rotate counterclockwise by 90 degrees
     return getUnitVector(point(
