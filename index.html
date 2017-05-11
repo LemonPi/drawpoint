@@ -9,16 +9,17 @@
 <body>
 <canvas id="cv" width="600" height="600" style="border:solid black 2px"></canvas>
 <div>
+    <input type="checkbox" id="trace" name="trace" value="trace" checked>
+    <label for="trace">Show control points</label>
+</div>
+
+<div>
     <button id="clear">clear</button>
     <button id="line">line</button>
     <button id="quadratic">quadratic curve</button>
     <button id="bezier">bezier curve</button>
 </div>
 
-<div>
-    <input type="checkbox" id="trace" name="trace" value="trace" checked>
-    <label for="trace">Show control points</label>
-</div>
 </div>
 <div>
     <p id="explanation">Click on the canvas to set points down. Different modes expect different number of points
