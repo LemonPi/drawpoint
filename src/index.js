@@ -1,5 +1,5 @@
 export * from "./util";
-export * from "./colour";
+export * from "./color";
 export * from "./numeric";
 export * from "./point";
 export * from "./curve";

@@ -136,7 +136,7 @@ function averagePoint(p1, p2) {
 }
 
 /**
- * Get the difference of 2 draw points p2 - p1
+ * Get the difference of 2 draw points p2 - p1; conceptually a vector pointing p1 -> p2
  * @param {{x:number, y:number}} p1 First point
  * @param {{x:number, y:number}} p2 Second point
  * @returns {{x: number, y: number}}
@@ -146,16 +146,20 @@ function diff(p1, p2) {
 }
 
 /**
- * Get the magnitude of a vector
- * @memberof module:da
- * @param {number[]} arguments components of the vector
- * @returns {number}
+ * Get the magnitude of a vector of any dimension
+ * @param components
+ * @returns {number} Euclidean (L^2) norm of vector
  */
 function norm() {
     var tot = 0;
-    for (var i = 0; i < arguments.length; ++i) {
-        tot += arguments[i] * arguments[i];
+
+    for (var _len = arguments.length, components = Array(_len), _key = 0; _key < _len; _key++) {
+        components[_key] = arguments[_key];
     }
+
+    components.forEach(function (component) {
+        tot += component * component;
+    });
     return Math.sqrt(tot);
 }
 
@@ -242,8 +246,8 @@ function adjustPoint(pt, dx, dy) {
 function shiftPoints(dx, dy) {
     var shiftedPoints = [];
 
-    for (var _len = arguments.length, points = Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
-        points[_key - 2] = arguments[_key];
+    for (var _len2 = arguments.length, points = Array(_len2 > 2 ? _len2 - 2 : 0), _key2 = 2; _key2 < _len2; _key2++) {
+        points[_key2 - 2] = arguments[_key2];
     }
 
     points.forEach(function (pt) {
@@ -276,8 +280,8 @@ function reflectPoint(pt) {
  * @param points Points to scale relative to center
  */
 function scalePoints(center, scaleBy) {
-    for (var _len2 = arguments.length, points = Array(_len2 > 2 ? _len2 - 2 : 0), _key2 = 2; _key2 < _len2; _key2++) {
-        points[_key2 - 2] = arguments[_key2];
+    for (var _len3 = arguments.length, points = Array(_len3 > 2 ? _len3 - 2 : 0), _key3 = 2; _key3 < _len3; _key3++) {
+        points[_key3 - 2] = arguments[_key3];
     }
 
     for (var i = 0; i < points.length; ++i) {
@@ -311,8 +315,8 @@ function rotatePoints(pivot, rad) {
     var cos = Math.cos(rad),
         sin = Math.sin(rad);
 
-    for (var _len3 = arguments.length, points = Array(_len3 > 2 ? _len3 - 2 : 0), _key3 = 2; _key3 < _len3; _key3++) {
-        points[_key3 - 2] = arguments[_key3];
+    for (var _len4 = arguments.length, points = Array(_len4 > 2 ? _len4 - 2 : 0), _key4 = 2; _key4 < _len4; _key4++) {
+        points[_key4 - 2] = arguments[_key4];
     }
 
     for (var i = 0; i < points.length; ++i) {

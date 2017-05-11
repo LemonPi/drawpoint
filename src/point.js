@@ -35,7 +35,7 @@ export function averagePoint(p1, p2, bias = 0.5) {
 }
 
 /**
- * Get the difference of 2 draw points p2 - p1
+ * Get the difference of 2 draw points p2 - p1; conceptually a vector pointing p1 -> p2
  * @param {{x:number, y:number}} p1 First point
  * @param {{x:number, y:number}} p2 Second point
  * @returns {{x: number, y: number}}
@@ -48,16 +48,15 @@ export function diff(p1, p2) {
 }
 
 /**
- * Get the magnitude of a vector
- * @memberof module:da
- * @param {number[]} arguments components of the vector
- * @returns {number}
+ * Get the magnitude of a vector of any dimension
+ * @param components
+ * @returns {number} Euclidean (L^2) norm of vector
  */
-export function norm() {
+export function norm(...components) {
     let tot = 0;
-    for (let i = 0; i < arguments.length; ++i) {
-        tot += arguments[i] * arguments[i];
-    }
+    components.forEach((component)=>{
+        tot += component * component;
+    });
     return Math.sqrt(tot);
 }
 
