@@ -23,7 +23,8 @@
     "mocha": "^3.3.0",
     "uglify-js": "^3.0.3",
     "webpack": "^2.5.1",
-    "webpack-dev-server": "^2.4.5"
+    "webpack-dev-server": "^2.4.5",
+    "seedrandom": "^2.4.2"
   },
   "dependencies": {
     "context-2d-tracked": "^1.0.2"
