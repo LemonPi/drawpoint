@@ -6,7 +6,13 @@ export function point(x, y) {
     return {x, y};
 }
 
-export const origin = Object.freeze(point(0,0));
+export function makePoint(func, ...cps) {
+    return point(
+        func(...cps.map(cp => cp.x)),
+        func(...cps.map(cp => cp.y)));
+}
+
+export const origin = Object.freeze(point(0, 0));
 
 /**
  * Insert this special point in the list of points given to drawPoints to
@@ -29,12 +35,6 @@ export const endPoint = Object.freeze({
     end: true
 });
 
-export function averagePoint(p1, p2, bias = 0.5) {
-    return point(
-        p1.x * (1 - bias) + p2.x * bias,
-        p1.y * (1 - bias) + p2.y * bias
-    );
-}
 
 /**
  * Get the difference of 2 draw points p2 - p1; conceptually a vector pointing p1 -> p2
@@ -43,10 +43,9 @@ export function averagePoint(p1, p2, bias = 0.5) {
  * @returns {{x: number, y: number}}
  */
 export function diff(p1, p2) {
-    return point(
-        p2.x - p1.x,
-        p2.y - p1.y
-    );
+    return makePoint((pp1, pp2) => {
+        return pp2 - pp1;
+    }, p1, p2);
 }
 
 /**
@@ -55,7 +54,7 @@ export function diff(p1, p2) {
  * @returns {number} Euclidean (L^2) norm of vec
  */
 export function norm(vec) {
-    return Math.sqrt(vec.x*vec.x + vec.y*vec.y);
+    return Math.sqrt(vec.x * vec.x + vec.y * vec.y);
 }
 
 /**
@@ -87,10 +86,9 @@ export function scale(pt, scaleBy, referencePt = origin) {
  * @returns {{x: *, y: *}}
  */
 export function addVector(p1, p2, scaleBy = 1) {
-    return point(
-        p1.x + p2.x * scaleBy,
-        p1.y + p2.y * scaleBy
-    );
+    return makePoint((pp1, pp2) => {
+        return pp1 + pp2 * scaleBy;
+    }, p1, p2);
 }
 
 /**
@@ -100,10 +98,7 @@ export function addVector(p1, p2, scaleBy = 1) {
  */
 export function getUnitVector(vec) {
     const magnitude = norm(vec);
-    return point(
-        vec.x / magnitude,
-        vec.y / magnitude
-    );
+    return makePoint(v => v / magnitude, vec);
 }
 
 /**
@@ -113,20 +108,14 @@ export function getUnitVector(vec) {
  */
 export function getPerpendicularVector(vec) {
     // rotate counterclockwise by 90 degrees
-    return getUnitVector(point(
-        -vec.y,
-        vec.x
-    ));
+    return getUnitVector(point(-vec.y, vec.x));
 }
 
 /**
  * Remove any extra information from a point down to just x,y
  */
 export function extractPoint(pt) {
-    return point(
-        pt.x,
-        pt.y
-    );
+    return point(pt.x, pt.y);
 }
 
 /**
@@ -136,22 +125,22 @@ export function reflect(pt, m = Infinity, b = 0) {
     if (!pt) {
         return pt;
     }
-    let c,cm;
+    let c, cm;
 
-    // vertical line
+    // vertical linear
     if (m === Infinity) {
         c = 0;
         cm = 0;
         // has no single y-intercept
         b = pt.y;
     } else {
-        c = (pt.x + (pt.y - b)*m) / (1 + m*m);
+        c = (pt.x + (pt.y - b) * m) / (1 + m * m);
         cm = c * m;
     }
 
     return point(
-        2*c - pt.x,
-        2*cm - pt.y + 2*b
+        2 * c - pt.x,
+        2 * cm - pt.y + 2 * b
     );
 }
 
@@ -167,16 +156,12 @@ export function adjust(pt, dx, dy) {
         return pt;
     }
     // return a point with x and y adjusted by dx and dy respectively
-    const movedPoint = clone(pt);
-    movedPoint.x += dx;
-    movedPoint.y += dy;
-    if (movedPoint.cp1) {
-        movedPoint.cp1.x += dx;
-        movedPoint.cp1.y += dy;
+    const movedPoint = point(pt.x + dx, pt.y + dy);
+    if (pt.cp1) {
+        movedPoint.cp1 = point(pt.cp1.x + dx, pt.cp1.y + dy);
     }
-    if (movedPoint.cp2) {
-        movedPoint.cp2.x += dx;
-        movedPoint.cp2.y += dy;
+    if (pt.cp2) {
+        movedPoint.cp2 = point(pt.cp2.x + dx, pt.cp2.y + dy);
     }
     return movedPoint;
 }
@@ -203,11 +188,11 @@ export function adjustPoints(dx, dy, ...points) {
  * @param points Points to scale relative to center
  */
 export function scalePoints(center, scaleBy, ...points) {
-    points.forEach((pt)=>{
+    points.forEach((pt) => {
         if (!pt || pt.hasOwnProperty("x") === false) {
             return;
         }
-        const {x, y} =  scale(pt, scaleBy, center);
+        const {x, y} = scale(pt, scaleBy, center);
         pt.x = x;
         pt.y = y;
         if (pt.cp1) {
@@ -227,7 +212,7 @@ export function scalePoints(center, scaleBy, ...points) {
  */
 export function rotatePoints(pivot, rad, ...points) {
     let cos = Math.cos(rad), sin = Math.sin(rad);
-    points.forEach((pt)=>{
+    points.forEach((pt) => {
         if (!pt || pt.hasOwnProperty("x") === false) {
             return;
         }
