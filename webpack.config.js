@@ -19,6 +19,7 @@ module.exports = {
     devServer: {
         publicPath: "/dist",
     },
+    devtool: "cheap-module-source-map",
     module: {
         rules: [
             {
