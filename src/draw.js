@@ -140,7 +140,7 @@ export function drawSpecificCurl(left, center, right) {
  * Debug the curve going into a drawpoint. Use by wrapping a drawpoint with it when returning
  * to guiMenuItem.
  * @param {object} pt
- * @param {object} traceOptions Options for how to show the points
+ * @param {object} options Options for how to show the points
  * @returns {*}
  */
 export function tracePoint(pt, options) {
@@ -176,9 +176,9 @@ export function reverseDrawPoint(start, end) {
 }
 
 /**
- * For a bezier curve point, get a control point on the other side of the point so that the
+ * For a cubic curve point, get a control point on the other side of the point so that the
  * curve is smooth.
- * @param {point} pt End point of a bezier curve (must have 2nd control point)
+ * @param {point} pt End point of a cubic curve (must have 2nd control point)
  * @param {number} scaleBy How much back to extend the continuing control point.
  * A value of 1 produces a symmetric curve.
  * @returns {{x, y}|{x: number, y: number}|*} Continuing control point
