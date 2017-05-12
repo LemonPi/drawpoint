@@ -20,11 +20,12 @@
     "babel-core": "^6.24.1",
     "babel-loader": "^7.0.0",
     "babel-preset-es2015": "^6.24.1",
+    "deep-close-to": "^1.0.1",
     "mocha": "^3.3.0",
+    "seedrandom": "^2.4.2",
     "uglify-js": "^3.0.3",
     "webpack": "^2.5.1",
-    "webpack-dev-server": "^2.4.5",
-    "seedrandom": "^2.4.2"
+    "webpack-dev-server": "^2.4.5"
   },
   "dependencies": {
     "context-2d-tracked": "^1.0.2"
