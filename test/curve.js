@@ -390,7 +390,25 @@ describe("#simpleQuadratic", function () {
 });
 
 describe("#getCubicControlPoints", function () {
-
+    const [pLinear, pQuadratic, pCubic] = getRandomCurves();
+    it("should return cubic control points as is", function () {
+        const [cp1, cp2] = dp.getCubicControlPoints(p1, pCubic);
+        c.assertDeepCloseTo(cp1, pCubic.cp1);
+        c.assertDeepCloseTo(cp2, pCubic.cp2);
+    });
+    it("should elevate the degree of a quadratic curve", function () {
+        const [cp1, cp2] = dp.getCubicControlPoints(p1, pQuadratic);
+        const p2 = dp.elevateDegree(p1, pQuadratic);
+        c.assertDeepCloseTo(cp1, p2.cp1);
+        c.assertDeepCloseTo(cp2, p2.cp2);
+    });
+    it("should elevate the degree of a linear curve twice", function () {
+        const [cp1, cp2] = dp.getCubicControlPoints(p1, pLinear);
+        let p2 = dp.elevateDegree(p1, pLinear);
+        p2 = dp.elevateDegree(p1, p2);
+        c.assertDeepCloseTo(cp1, p2.cp1);
+        c.assertDeepCloseTo(cp2, p2.cp2);
+    });
 });
 
 describe("#transformCurve", function () {
