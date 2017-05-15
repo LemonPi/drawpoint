@@ -7,6 +7,10 @@ const seedrandom = require("seedrandom");
 
 if (process && process.argv[3]) {
     seedrandom(process.argv[3], {global: true});
+} else {
+    const seed = new Date().getTime().toString();
+    seedrandom(seed, {global:true});
+    console.log("seed (string): ", seed);
 }
 
 function importTest(name, path) {
