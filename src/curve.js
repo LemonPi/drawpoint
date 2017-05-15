@@ -366,19 +366,17 @@ export function elevateDegree(p1, p2) {
  * @returns {[*,*]} cp1 and cp2 of end point
  */
 export function getCubicControlPoints(p1, p2) {
-    // already a cubic, just return directly
-    if (p2.cp1 && p2.cp2) {
-        return [p2.cp1, p2.cp2];
-    }
-    // quadratic
-    const cp = p2.cp1 || p2.cp2;
-    if (cp) {
-        const newEnd = elevateDegree(p1, p2);
-        return [newEnd.cp1, newEnd.cp2];
-    }
-    // linear
-    const newEnd = elevateDegree(p1, elevateDegree(p1, p2));
-    return [newEnd.cp1, newEnd.cp2];
+    return applyToCurve(p1, p2, {
+        linear: () => {
+            const newEnd = elevateDegree(p1, elevateDegree(p1, p2));
+            return [newEnd.cp1, newEnd.cp2];
+        },
+        quadratic: () => {
+            const newEnd = elevateDegree(p1, p2);
+            return [newEnd.cp1, newEnd.cp2];
+        },
+        cubic: () => [p2.cp1, p2.cp2]
+    });
 }
 
 /**
