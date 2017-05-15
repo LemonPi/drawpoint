@@ -134,14 +134,12 @@ export function splitCurve(t, p1, p2) {
 }
 
 function interpolateLinear(p1, p2, p) {
-    // looking for y given x
-    // vertical linear, can't calculate
+    // infinite number of options, can't calculate
     if (p2 === p1) {
-        console.log("Linear interpolation vertical linear");
-        return p;
+        return [];
     }
     // t
-    return (p - p1) / (p2 - p1);
+    return [(p - p1) / (p2 - p1)];
 }
 
 function solveQuadraticEquation(a, b, c) {
@@ -166,14 +164,7 @@ function interpolateQuadratic(p1, cp1, p2, p) {
     const c = p1 - p;
 
     // 2 possible values for t
-    const ts = solveQuadraticEquation(a, b, c).filter((t) => {
-        return t >= 0 && t <= 1;
-    });
-    if (ts.length === 0) {
-        console.log("Quadratic interpolation out of bounds");
-        return null;
-    }
-    return ts;
+    return solveQuadraticEquation(a, b, c);
 }
 
 function cubeRoot(v) {
@@ -280,43 +271,45 @@ function interpolateCubic(p1, cp1, cp2, p2, p) {
     const b = (-3 * p1 + 3 * cp1) / d;
     const c = p1 / d;
 
-    return solveCubicEquation(a, b, c).filter((t) => {
-        return t >= 0 && t <= 1;
-    });
+    return solveCubicEquation(a, b, c).map(t => roundToDec(t, 4));
 }
 
 
+/**
+ * Get points along the curve from t = [0,1] that share the fixed dimension as betweenPoint.
+ * For example, if betweenPoint = {x:10, y:null}, then we are looking for all points with
+ * x = 10.
+ * @param p1
+ * @param p2
+ * @param betweenPoint Query that has either x or y set to null which is to be determined
+ * @returns {Array} List of draw points that have a "t" property which is how far they are along the curve
+ */
 export function interpolateCurve(p1, p2, betweenPoint) {
-    let missingDim, knownDim;
+    let knownDim;
     if (betweenPoint.x === null) {
-        knownDim = "x";
-        missingDim = "y";
-    } else if (betweenPoint.y === null) {
         knownDim = "y";
-        missingDim = "x";
+    } else if (betweenPoint.y === null) {
+        knownDim = "x";
     } else {
-        return null;
+        return [];
     }
 
-    applyToCurve(p1, p2, {
-        linear: (...cps) => {
-            const t = interpolateLinear(...cps.map(cp => cp[knownDim]), betweenPoint[knownDim]);
-            betweenPoint[missingDim] = getLinearValue(t, ...cps.map(cp => cp[missingDim]));
-            betweenPoint.t = t;
-        },
-        quadratic: (...cps) => {
-            const t = interpolateQuadratic(...cps.map(cp => cp[knownDim]), betweenPoint[knownDim]);
-            betweenPoint[missingDim] = getQuadraticValue(t, ...cps.map(cp => cp[missingDim]));
-            betweenPoint.t = t;
-        },
-        cubic: (...cps) => {
-            const t = interpolateCubic(...cps.map(cp => cp[knownDim]), betweenPoint[knownDim]);
-            betweenPoint[missingDim] = getCubicValue(t, ...cps.map(cp => cp[missingDim]));
-            betweenPoint.t = t;
-        },
+    const ts = applyToCurve(p1, p2, {
+        linear: (...cps) => interpolateLinear(...cps.map(cp => cp[knownDim]), betweenPoint[knownDim]),
+        quadratic: (...cps) => interpolateQuadratic(...cps.map(cp => cp[knownDim]), betweenPoint[knownDim]),
+        cubic: (...cps) => interpolateCubic(...cps.map(cp => cp[knownDim]), betweenPoint[knownDim]),
+    }).filter((t) => {
+        // solving cubic equations is not very numerically stable...
+        t = roundToDec(t, 3);
+        return t >= 0 && t <= 1;
     });
 
-    return betweenPoint;
+    return ts.map((t) => {
+        const p = getPointOnCurve(t, p1, p2);
+        p.t = t;
+        return p;
+    });
+
 }
 
 
@@ -380,17 +373,17 @@ export function elevateDegree(p1, p2) {
  */
 export function getCubicControlPoints(p1, p2) {
     // already a cubic, just return directly
-    if (end.cp1 && end.cp2) {
-        return [end.cp1, end.cp2];
+    if (p2.cp1 && p2.cp2) {
+        return [p2.cp1, p2.cp2];
     }
     // quadratic
-    const cp = end.cp1 || end.cp2;
+    const cp = p2.cp1 || p2.cp2;
     if (cp) {
-        const newEnd = elevateDegree(start, end);
+        const newEnd = elevateDegree(p1, p2);
         return [newEnd.cp1, newEnd.cp2];
     }
     // linear
-    const newEnd = elevateDegree(start, elevateDegree(start, end));
+    const newEnd = elevateDegree(p1, elevateDegree(p1, p2));
     return [newEnd.cp1, newEnd.cp2];
 }
 

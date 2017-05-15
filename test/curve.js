@@ -3,6 +3,8 @@ const dp = require("../dist/drawpoint");
 const assert = require("assert");
 const c = require("./common");
 
+const dimensions = ["x", "y"];
+
 function getRandomCurves() {
     const pLine = c.getRandomPoint();
     const pQuadratic = c.getRandomPoint();
@@ -231,7 +233,140 @@ describe("#splitCurve", function () {
 
 describe("#interpolateCurve", function () {
     const [pLine, pQuadratic, pCubic] = getRandomCurves();
+    const curves = [pLine, pQuadratic, pCubic];
+    describe("return start point when given start point", function () {
+        curves.forEach((p2, degree) => {
+            it(`should work with degree ${degree + 1} with fixed x`, function () {
+                testInterpolation(0, p1, p2, "y");
+            });
+            it(`should work with degree ${degree + 1} with fixed y`, function () {
+                testInterpolation(0, p1, p2, "x");
+            });
+        });
+    });
+    describe("return end point when given end point", function () {
+        curves.forEach((p2, degree) => {
+            it(`should work with degree ${degree + 1} with fixed x`, function () {
+                testInterpolation(1, p1, p2, "y");
+            });
+            it(`should work with degree ${degree + 1} with fixed y`, function () {
+                testInterpolation(1, p1, p2, "x");
+            });
+        });
+    });
+    describe("return empty list when there are none", function () {
+        it("should not interpolate given non-query (both x and y are non-null)", function () {
+            const p2 = dp.point(p1.x, p1.y + 50);
+            const points = dp.interpolateCurve(p1, p2, p2);
+            assert.strictEqual(points.length, 0);
+        });
+        it("should not interpolate vertical lines given x", function () {
+            const p2 = dp.point(p1.x, p1.y + 50);
+            const betweenPoint = dp.point(p1.x, null);
+            const points = dp.interpolateCurve(p1, p2, betweenPoint);
+            assert.strictEqual(points.length, 0);
+        });
+        it("should not interpolate horizontal lines given y", function () {
+            const p2 = dp.point(p1.x + 50, p1.y);
+            const betweenPoint = dp.point(null, p1.y);
+            const points = dp.interpolateCurve(p1, p2, betweenPoint);
+            assert.strictEqual(points.length, 0);
+        });
+        it("should not interpolate points not between p1,p2 (t outside of [0,1]) for linear", function () {
+            const p2 = dp.point(p1.x + 50, p1.y);
+            // even farther to the right than the endpoint
+            const betweenPoint = dp.point(p1.x + 75, null);
+            const points = dp.interpolateCurve(p1, p2, betweenPoint);
+            assert.strictEqual(points.length, 0);
+        });
+        it("should not interpolate points not between p1,p2 (t outside of [0,1]) for quadratic", function () {
+            const p2 = dp.point(p1.x + 50, p1.y);
+            // linear because p2 has no control points yet
+            p2.cp1 = dp.adjust(dp.getPointOnCurve(0.5, p1, p2), 0, 10);
+            {
+                // even farther to the right than the endpoint
+                const betweenPoint = dp.point(p1.x + 75, null);
+                const points = dp.interpolateCurve(p1, p2, betweenPoint);
+                assert.strictEqual(points.length, 0);
+            }
+            {
+                // below both end points and control point
+                const betweenPoint = dp.point(null, p1.y - 10);
+                const points = dp.interpolateCurve(p1, p2, betweenPoint);
+                assert.strictEqual(points.length, 0);
+            }
+            {
+                // above central control point
+                const betweenPoint = dp.point(null, p2.cp1.y + 10);
+                const points = dp.interpolateCurve(p1, p2, betweenPoint);
+                assert.strictEqual(points.length, 0);
+            }
+        });
+        it("should not interpolate points not between p1,p2 (t outside of [0,1]) for cubic", function () {
+            const p2 = dp.point(p1.x + 50, p1.y);
+            // linear because p2 has no control points yet
+            const cp1 = dp.adjust(dp.getPointOnCurve(0.3, p1, p2), 0, 10);
+            const cp2 = dp.adjust(dp.getPointOnCurve(0.7, p1, p2), 0, -10);
+            p2.cp1 = cp1;
+            p2.cp2 = cp2;
+            {
+                // even farther to the right than the endpoint
+                const betweenPoint = dp.point(p1.x + 75, null);
+                const points = dp.interpolateCurve(p1, p2, betweenPoint);
+                assert.strictEqual(points.length, 0);
+            }
+            {
+                // below control points
+                const betweenPoint = dp.point(null, p1.y - 11);
+                const points = dp.interpolateCurve(p1, p2, betweenPoint);
+                assert.strictEqual(points.length, 0);
+            }
+            {
+                // above control points
+                const betweenPoint = dp.point(null, p1.y + 11);
+                const points = dp.interpolateCurve(p1, p2, betweenPoint);
+                assert.strictEqual(points.length, 0);
+            }
+        });
+    });
+
+
+    describe("nominal cases (hard coded/hand calculated)", function () {
+        const ts = [0.1, 0.5, 0.7, 0.9];
+        curves.forEach((p2, degree) => {
+            dimensions.forEach((dimensionToFind) => {
+                it(`should interpolate degree ${degree + 1} missing ${dimensionToFind}`, function () {
+                    ts.forEach(t => testInterpolation(t, p1, p2, dimensionToFind));
+                });
+            });
+        });
+    });
+    function testInterpolation(t, p1, p2, dimensionToFind) {
+        const knownP = dp.getPointOnCurve(t, p1, p2);
+        const query = dp.clone(knownP);
+        query[dimensionToFind] = null;
+        const points = dp.interpolateCurve(p1, p2, query);
+
+        let atLeastOneMatches = false;
+        points.forEach((p) => {
+            if (c.closeTo(p.t, t, 0.001)) {
+                atLeastOneMatches = true;
+                c.assertDeepCloseTo(dp.extractPoint(p), dp.extractPoint(knownP), 0.125);
+            }
+        });
+        if (atLeastOneMatches === false) {
+            console.log(p1, "->", p2);
+            console.log("looking for");
+            console.log("t =", t, knownP);
+            console.log("interpolated points");
+            console.log(points);
+        }
+        assert(atLeastOneMatches, "point not found");
+    }
 });
+
+
+
 
 describe("#simpleQuadratic", function () {
 
