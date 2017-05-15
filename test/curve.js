@@ -16,6 +16,7 @@ function getRandomCurves() {
     return [pLine, pQuadratic, pCubic];
 }
 
+// common starting point for all curves
 const p1 = c.getRandomPoint();
 describe("#applyToCurve", function () {
     const [pLine, pQuadratic, pCubic] = getRandomCurves();
@@ -366,10 +367,26 @@ describe("#interpolateCurve", function () {
 });
 
 
-
-
 describe("#simpleQuadratic", function () {
-
+    const [pLine] = getRandomCurves();
+    const ts = [-1, 0, 0.1, 0.5, 0.75, 1, 2];
+    it("should just give point on line with deflection = 0", function () {
+        ts.forEach((t) => {
+            const cp = dp.simpleQuadratic(p1, pLine, t, 0);
+            c.assertDeepCloseTo(cp, dp.getPointOnCurve(t, p1, pLine));
+        });
+    });
+    const deflections = [0.1, -0.1, 0.5, 1, 5, 10, -20];
+    it("should give a control point whose closest distance to line p1 -> p2 is |deflection|", function () {
+        deflections.forEach((deflection) => {
+            ts.forEach((t) => {
+                const cp = dp.simpleQuadratic(p1, pLine, t, deflection);
+                // closest point to the control point along p1 -> p2 should be at t
+                const closestPoint = dp.getPointOnCurve(t, p1, pLine);
+                c.assertCloseTo(dp.norm(dp.diff(cp, closestPoint)), Math.abs(deflection));
+            });
+        });
+    });
 });
 
 describe("#getCubicControlPoints", function () {
