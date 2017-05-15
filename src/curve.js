@@ -2,7 +2,7 @@
  * Created by johnson on 11.05.17.
  */
 
-import {point, makePoint, extractPoint, diff, getPerpendicularVector} from "./point";
+import {norm, add, makePoint, extractPoint, diff, getPerpendicularVector} from "./point";
 import {roundToDec} from "./numeric";
 
 export function applyToCurve(p1, p2, {linear, quadratic, cubic}) {
@@ -320,18 +320,12 @@ export function interpolateCurve(p1, p2, betweenPoint) {
  * @param p2
  * @param t How far along the linear between p1 and p2 the control point should start
  * @param deflection Which direction and how far perpendicular to the p1-p2 linear
- * the control point should be
+ * the control point should be (the norm of the perpendicular vector)
  * @returns {{x: number, y: number}}
  */
 export function simpleQuadratic(p1, p2, t = 0.5, deflection = 0) {
-    const cp1 = {
-        x: p1.x * (1 - t) + p2.x * t,
-        y: p1.y * (1 - t) + p2.y * t
-    };
-    const unitPerpendicular = getPerpendicularVector(diff(p1, p2));
-    cp1.x += deflection * unitPerpendicular.x;
-    cp1.y += deflection * unitPerpendicular.y;
-    return cp1;
+    const cp1 = getPointOnCurve(t, p1, extractPoint(p2));
+    return add(cp1, getPerpendicularVector(diff(p1, p2)), deflection);
 }
 
 
