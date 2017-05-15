@@ -6,26 +6,26 @@ const c = require("./common");
 const dimensions = ["x", "y"];
 
 function getRandomCurves() {
-    const pLine = c.getRandomPoint();
+    const pLinear = c.getRandomPoint();
     const pQuadratic = c.getRandomPoint();
     pQuadratic.cp1 = c.getRandomPoint();
     const pCubic = c.getRandomPoint();
     pCubic.cp1 = c.getRandomPoint();
     pCubic.cp2 = c.getRandomPoint();
 
-    return [pLine, pQuadratic, pCubic];
+    return [pLinear, pQuadratic, pCubic];
 }
 
 // common starting point for all curves
 const p1 = c.getRandomPoint();
 describe("#applyToCurve", function () {
-    const [pLine, pQuadratic, pCubic] = getRandomCurves();
+    const [pLinear, pQuadratic, pCubic] = getRandomCurves();
     it("should detect lines", function () {
         let ok = false;
-        dp.applyToCurve(p1, pLine, {
+        dp.applyToCurve(p1, pLinear, {
             linear: (pp1, p2) => {
                 assert.deepStrictEqual(pp1, p1);
-                assert.deepStrictEqual(p2, pLine);
+                assert.deepStrictEqual(p2, pLinear);
                 ok = true;
             },
             quadratic: () => {
@@ -77,8 +77,8 @@ describe("#applyToCurve", function () {
 });
 
 describe("#getPointOnCurve", function () {
-    const [pLine, pQuadratic, pCubic] = getRandomCurves();
-    const curves = [pLine, pQuadratic, pCubic];
+    const [pLinear, pQuadratic, pCubic] = getRandomCurves();
+    const curves = [pLinear, pQuadratic, pCubic];
     const ts = [0.1, 0.5, -0.1, 0.7, 1.1];
     it("should give start point when t = 0", function () {
         curves.forEach((p2) => {
@@ -94,37 +94,37 @@ describe("#getPointOnCurve", function () {
     });
     it("should split lines correctly", function () {
         ts.forEach((t) => {
-            const pt = dp.getPointOnCurve(t, p1, pLine);
-            c.assertCloseTo(pt.x, p1.x * (1 - t) + pLine.x * t);
-            c.assertCloseTo(pt.y, p1.y * (1 - t) + pLine.y * t);
+            const pt = dp.getPointOnCurve(t, p1, pLinear);
+            c.assertCloseTo(pt.x, p1.x * (1 - t) + pLinear.x * t);
+            c.assertCloseTo(pt.y, p1.y * (1 - t) + pLinear.y * t);
         });
     });
     it("should treat curves with control points along the curve like lines", function () {
         // a quadratic with a control point along the linear (equivalent to a linear)
-        const pLineQuadratic = dp.elevateDegree(p1, pLine);
-        const pLineCubic = dp.elevateDegree(p1, pLineQuadratic);
+        const pLinearQuadratic = dp.elevateDegree(p1, pLinear);
+        const pLinearCubic = dp.elevateDegree(p1, pLinearQuadratic);
         // a cubic with control points along the linear (equivalent to a linear)
 
         ts.forEach((t) => {
-            const pt = dp.getPointOnCurve(t, p1, pLine);
-            c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, pLineQuadratic), pt);
-            c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, pLineCubic), pt);
+            const pt = dp.getPointOnCurve(t, p1, pLinear);
+            c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, pLinearQuadratic), pt);
+            c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, pLinearCubic), pt);
         });
     });
 });
 
 describe("#elevateDegree", function () {
-    const [pLine, pQuadratic] = getRandomCurves();
+    const [pLinear, pQuadratic] = getRandomCurves();
     const ts = [0.1, 0.5, -0.1, 0.7, 1.1];
     it("should increase the degree but return the same points per t for linear", function () {
-        const pLineQuadratic = dp.elevateDegree(p1, pLine);
-        const pLineCubic = dp.elevateDegree(p1, pLineQuadratic);
-        assert.deepStrictEqual(dp.extractPoint(pLineQuadratic), pLine);
+        const pLinearQuadratic = dp.elevateDegree(p1, pLinear);
+        const pLinearCubic = dp.elevateDegree(p1, pLinearQuadratic);
+        assert.deepStrictEqual(dp.extractPoint(pLinearQuadratic), pLinear);
 
         ts.forEach((t) => {
-            const pt = dp.getPointOnCurve(t, p1, pLine);
-            c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, pLineQuadratic), pt);
-            c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, pLineCubic), pt);
+            const pt = dp.getPointOnCurve(t, p1, pLinear);
+            c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, pLinearQuadratic), pt);
+            c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, pLinearCubic), pt);
         });
     });
     it("should increase the degree but return the same points per t for quadratic", function () {
@@ -233,8 +233,8 @@ describe("#splitCurve", function () {
 });
 
 describe("#interpolateCurve", function () {
-    const [pLine, pQuadratic, pCubic] = getRandomCurves();
-    const curves = [pLine, pQuadratic, pCubic];
+    const [pLinear, pQuadratic, pCubic] = getRandomCurves();
+    const curves = [pLinear, pQuadratic, pCubic];
     describe("return start point when given start point", function () {
         curves.forEach((p2, degree) => {
             it(`should work with degree ${degree + 1} with fixed x`, function () {
@@ -368,21 +368,21 @@ describe("#interpolateCurve", function () {
 
 
 describe("#simpleQuadratic", function () {
-    const [pLine] = getRandomCurves();
+    const [pLinear] = getRandomCurves();
     const ts = [-1, 0, 0.1, 0.5, 0.75, 1, 2];
     it("should just give point on line with deflection = 0", function () {
         ts.forEach((t) => {
-            const cp = dp.simpleQuadratic(p1, pLine, t, 0);
-            c.assertDeepCloseTo(cp, dp.getPointOnCurve(t, p1, pLine));
+            const cp = dp.simpleQuadratic(p1, pLinear, t, 0);
+            c.assertDeepCloseTo(cp, dp.getPointOnCurve(t, p1, pLinear));
         });
     });
     const deflections = [0.1, -0.1, 0.5, 1, 5, 10, -20];
     it("should give a control point whose closest distance to line p1 -> p2 is |deflection|", function () {
         deflections.forEach((deflection) => {
             ts.forEach((t) => {
-                const cp = dp.simpleQuadratic(p1, pLine, t, deflection);
+                const cp = dp.simpleQuadratic(p1, pLinear, t, deflection);
                 // closest point to the control point along p1 -> p2 should be at t
-                const closestPoint = dp.getPointOnCurve(t, p1, pLine);
+                const closestPoint = dp.getPointOnCurve(t, p1, pLinear);
                 c.assertCloseTo(dp.norm(dp.diff(cp, closestPoint)), Math.abs(deflection));
             });
         });
