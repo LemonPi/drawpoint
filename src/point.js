@@ -35,6 +35,18 @@ export const endPoint = Object.freeze({
     end: true
 });
 
+/**
+ * Treat points as vectors and add them, optionally after scaling p2
+ * @param p1
+ * @param p2
+ * @param scaleBy
+ * @returns {{x: *, y: *}}
+ */
+export function add(p1, p2, scaleBy = 1) {
+    return makePoint((pp1, pp2) => {
+        return pp1 + pp2 * scaleBy;
+    }, p1, p2);
+}
 
 /**
  * Get the difference of 2 draw points p2 - p1; conceptually a vector pointing p1 -> p2
@@ -75,21 +87,10 @@ export function angle(vec) {
  * @returns {{x: *, y: *}}
  */
 export function scale(pt, scaleBy, referencePt = origin) {
-    return addVector(referencePt, diff(referencePt, pt), scaleBy);
+    return add(referencePt, diff(referencePt, pt), scaleBy);
 }
 
-/**
- * Treat points as vectors and add them, optionally after scaling p2
- * @param p1
- * @param p2
- * @param scaleBy
- * @returns {{x: *, y: *}}
- */
-export function addVector(p1, p2, scaleBy = 1) {
-    return makePoint((pp1, pp2) => {
-        return pp1 + pp2 * scaleBy;
-    }, p1, p2);
-}
+
 
 /**
  * Relative to 0,0, get the direction a draw point/vector is pointing at

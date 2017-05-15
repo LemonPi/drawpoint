@@ -10,11 +10,11 @@ describe("#point", function () {
     });
 });
 
-describe("addVector", function () {
+describe("#add", function () {
     const p1 = dp.point(50, 20);
     const p2 = dp.point(100, 200);
     it("should treat points as vectors relative to (0,0)", function () {
-        const sum = dp.addVector(p1, p2);
+        const sum = dp.add(p1, p2);
         assert.strictEqual(sum.x, p2.x + p1.x);
         assert.strictEqual(sum.y, p2.y + p1.y);
     });
@@ -60,7 +60,7 @@ describe("#scale", function () {
         const p2 = dp.point(100, 200);
         const diff = dp.diff(p1, p2);
         scaleBys.forEach((scaleBy) => {
-            assert.deepStrictEqual(dp.scale(p2, scaleBy, p1), dp.addVector(p1, dp.scale(diff, scaleBy)));
+            assert.deepStrictEqual(dp.scale(p2, scaleBy, p1), dp.add(p1, dp.scale(diff, scaleBy)));
         });
     })
 });
@@ -120,8 +120,8 @@ describe("#adjust", function () {
     it("should move by the specified amount", function () {
         c.getRandomPoints().forEach((moveBy) => {
             const adjusted = dp.adjust(pt, moveBy.x, moveBy.y);
-            assert.deepStrictEqual(adjusted.cp1, dp.addVector(pt.cp1, moveBy));
-            assert.deepStrictEqual(adjusted.cp2, dp.addVector(pt.cp2, moveBy));
+            assert.deepStrictEqual(adjusted.cp1, dp.add(pt.cp1, moveBy));
+            assert.deepStrictEqual(adjusted.cp2, dp.add(pt.cp2, moveBy));
             assert.deepStrictEqual(adjusted.x, pt.x + moveBy.x);
             assert.deepStrictEqual(adjusted.y, pt.y + moveBy.y);
         });
