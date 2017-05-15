@@ -2,97 +2,113 @@
  * Created by johnson on 11.05.17.
  */
 
-import {extractPoint, diff, getPerpendicularVector, averagePoint} from "./point";
+import {point, makePoint, extractPoint, diff, getPerpendicularVector} from "./point";
 import {roundToDec} from "./numeric";
 
-function splitBezier(points, t) {
-    // split a cubic bezier based on De Casteljau, t is between [0,1]
-    const A = points.p1, B = points.cp1, C = points.cp2, D = points.p2;
-    const E = {
-        x: A.x * (1 - t) + B.x * t,
-        y: A.y * (1 - t) + B.y * t
-    };
-    const F = {
-        x: B.x * (1 - t) + C.x * t,
-        y: B.y * (1 - t) + C.y * t
-    };
-    const G = {
-        x: C.x * (1 - t) + D.x * t,
-        y: C.y * (1 - t) + D.y * t
-    };
-    const H = {
-        x: E.x * (1 - t) + F.x * t,
-        y: E.y * (1 - t) + F.y * t
-    };
-    const J = {
-        x: F.x * (1 - t) + G.x * t,
-        y: F.y * (1 - t) + G.y * t
-    };
-    const K = {
-        x: H.x * (1 - t) + J.x * t,
-        y: H.y * (1 - t) + J.y * t
-    };
+export function applyToCurve(p1, p2, {linear, quadratic, cubic}) {
+    const ep1 = extractPoint(p1);
+    const ep2 = extractPoint(p2);
+    if (p2.cp1 && p2.cp2) {
+        return cubic(ep1, ep2, p2.cp1, p2.cp2);
+    }
+    const cp = p2.cp1 || p2.cp2;
+    if (cp) {
+        return quadratic(ep1, ep2, cp);
+    } else {
+        return linear(ep1, ep2);
+    }
+}
+
+export function getPointOnCurve(t, p1, p2) {
+    return applyToCurve(p1, p2, {
+        linear: (...cps) => {
+            return makePoint(getLinearValue.bind(null,t), ...cps);
+        },
+        quadratic: (...cps) => {
+            return makePoint(getQuadraticValue.bind(null,t), ...cps);
+        },
+        cubic: (...cps) => {
+            return makePoint(getCubicValue.bind(null,t), ...cps);
+        },
+    });
+}
+
+function getLinearValue(t, p1, p2) {
+    // (1 - t) * p1 + t * p2
+    return t * (p2 - p1) + p1;
+}
+
+function getQuadraticValue(t, p1, p2, cp) {
+    // (1 - t)^2 * p1 + 2(1 - t)t * cp + t^2 * p2
+    // gather coefficients of t^2, t, and 1
+    return (p1 + p2 - 2 * cp) * t * t + 2 * (cp - p1) * t + p1;
+}
+
+function getCubicValue(t, p1, p2, cp1, cp2) {
+    // (1 - t)^3 * p1 + 3(1 - t)^2 * t * cp1 + 3(1 - t)t^2 * cp2 + t^3 * p2
+    // leave in unexpanded form
+    return p1 * (1 - t) * (1 - t) * (1 - t) + 3 * cp1 * (1 - t) * (1 - t) * t +
+        3 * cp2 * (1 - t) * t * t + p2 * t * t * t;
+}
+
+function splitBezier(t, p1, p2, cp1, cp2) {
+    // split a cubic cubic based on De Casteljau, t is between [0,1]
+    // just a series of linear interpolations
+    const A = p1, B = cp1, C = cp2, D = p2;
+    const E = makePoint(getLinearValue.bind(null,t), A, B);
+    const F = makePoint(getLinearValue.bind(null,t), B, C);
+    const G = makePoint(getLinearValue.bind(null,t), C, D);
+    const H = makePoint(getLinearValue.bind(null,t), E, F);
+    const J = makePoint(getLinearValue.bind(null,t), F, G);
+    const K = makePoint(getLinearValue.bind(null,t), H, J);
     return {
-        left : {
-            p1 : A,
+        left: {
+            p1,
             cp1: E,
             cp2: H,
-            p2 : K
+            p2: K
         },
         right: {
-            p1 : K,
+            p1: K,
             cp1: J,
             cp2: G,
-            p2 : D
+            p2
         }
     };
 }
 
-function splitQuadratic(points, t) {
-    // split a quadratic bezier based on De Casteljau, t is between [0,1]
-    const A = points.p1, B = points.cp1, C = points.p2;
-    const D = {
-        x: A.x * (1 - t) + B.x * t,
-        y: A.y * (1 - t) + B.y * t
-    };
-    const E = {
-        x: B.x * (1 - t) + C.x * t,
-        y: B.y * (1 - t) + C.y * t
-    };
-    const F = {
-        x: D.x * (1 - t) + E.x * t,
-        y: D.y * (1 - t) + E.y * t
-    };
+function splitQuadratic(t, p1, p2, cp) {
+    // split a quadratic cubic based on De Casteljau, t is between [0,1]
+    const A = p1, B = cp, C = p2;
+    const D = makePoint(getLinearValue.bind(null,t), A, B);
+    const E = makePoint(getLinearValue.bind(null,t), B, C);
+    const F = makePoint(getLinearValue.bind(null,t), D, E);
 
     return {
-        left : {
-            p1 : A,
+        left: {
+            p1,
             cp1: D,
-            p2 : F
+            p2: F
         },
         right: {
-            p1 : F,
+            p1: F,
             cp1: E,
-            p2 : C
+            p2
         }
     };
 }
 
-function splitLinear(points, t) {
-    // split a linear line
-    const A = points.p1, B = points.p2;
-    const C = {
-        x: A.x * (1 - t) + B.x * t,
-        y: A.y * (1 - t) + B.y * t
-    };
+function splitLinear(t, p1, p2) {
+    // split a linear linear
+    const C = makePoint(getLinearValue.bind(null, t), p1, p2);
     return {
-        left : {
-            p1: A,
+        left: {
+            p1,
             p2: C
         },
         right: {
             p1: C,
-            p2: B
+            p2
         }
     };
 }
@@ -100,50 +116,34 @@ function splitLinear(points, t) {
 /**
  * Split the curve between two drawpoints and return all the resulting drawpoints
  * @memberof module:da
- * @param {object} p1 Starting drawpoint
- * @param {object} p2 Ending drawpoint and also where we look at the control points
  * @param {number} t "time" along the curve to split at. Since all curves are parameterized
  * curves, t is their parameter. Can be thought of as traversing along the curve, where 0 is
  * at the start point and 1 is at the end point. This value can go beyond [0,1].
+ * @param {object} p1 Starting drawpoint
+ * @param {object} p2 Ending drawpoint and also where we look at the control points
  * @returns {{left, right}} Object having a left and right property, each with their own
  * p1 (start point), p2 (end point), and optionally cp1 and cp2 depending on what kind of
  * curve was split. Note that sp.left.p2 === sp.right.p1 always in value.
  */
-export function splitCurve(p1, p2, t) {
-    // split either a quadratic or bezier curve depending on number of control points on
+export function splitCurve(t, p1, p2) {
+    // split either a quadratic or cubic curve depending on number of control points on
     // the end point
-    if (p2.cp1 && p2.cp2) {
-        return splitBezier({
-            p1 : extractPoint(p1),
-            p2 : extractPoint(p2),
-            cp1: p2.cp1,
-            cp2: p2.cp2
-        }, t);
-    }
-    const cp = p2.cp1 || p2.cp2;
-    if (cp) {
-        return splitQuadratic({
-            p1 : extractPoint(p1),
-            p2 : extractPoint(p2),
-            cp1: cp
-        }, t);
-    } else {
-        return splitLinear({
-            p1: extractPoint(p1),
-            p2: p2
-        }, t);
-    }
+    return applyToCurve(p1, p2, {
+        linear: splitLinear.bind(null, t),
+        quadratic: splitQuadratic.bind(null, t),
+        cubic: splitBezier.bind(null, t),
+    });
 }
 
 function interpolateLinear(p1, p2, p) {
     // looking for y given x
-    // vertical line, can't calculate
-    if (p2 == p1) {
-        console.log("Linear interpolation vertical line");
+    // vertical linear, can't calculate
+    if (p2 === p1) {
+        console.log("Linear interpolation vertical linear");
         return p;
     }
     const t = (p - p1) / (p2 - p1);
-    return [t * (p2 - p1) + p1, t];
+    return [getLinearValue(t, p1, p2), t];
 }
 
 function solveQuadraticEquation(a, b, c) {
@@ -160,6 +160,7 @@ function solveQuadraticEquation(a, b, c) {
         ];
     }
 }
+
 
 function interpolateQuadratic(p1, p2, cp1, p) {
     const a = (p1 - 2 * cp1 + p2);
@@ -186,7 +187,7 @@ function interpolateQuadratic(p1, p2, cp1, p) {
     }
 
     return [
-        (p1 - 2 * cp1 + p1) * t * t + 2 * (cp1 - p1) * t + p1,
+        getQuadraticValue(t, p1, p2, cp1),
         t
     ];
 }
@@ -309,39 +310,39 @@ function interpolateCubic(p0, p1, p2, p3, p) {
     return ts;
 }
 
-function getCubicValue(t, a, b, c, d) {
-    return a * (1 - t) * (1 - t) * (1 - t) + 3 * b * (1 - t) * (1 - t) * t +
-        3 * c * (1 - t) * t * t + d * t * t * t;
-}
 
 export function interpolateCurve(p1, p2, betweenPoint) {
     let v, t;
-    if (p2.cp2) {
+    if (p2.cp1 && p2.cp2) {
         if (betweenPoint.x === null) {
             [t] = interpolateCubic(p1.y, p2.cp1.y, p2.cp2.y, p2.y, betweenPoint.y);
-            betweenPoint.x = getCubicValue(t, p1.x, p2.cp1.x, p2.cp2.x, p2.x);
+            betweenPoint.x = getCubicValue(t, p1.x, p2.x, p2.cp1.x, p2.cp2.x);
         } else if (betweenPoint.y === null) {
             [t] = interpolateCubic(p1.x, p2.cp1.x, p2.cp2.x, p2.x, betweenPoint.x);
-            betweenPoint.y = getCubicValue(t, p1.y, p2.cp1.y, p2.cp2.y, p2.y);
+            betweenPoint.y = getCubicValue(t, p1.y, p2.y, p2.cp1.y, p2.cp2.y);
         }
 
-    } else if (p2.cp1) {
-        if (betweenPoint.x === null) {
-            [v, t] = interpolateQuadratic(p1.y, p2.y, p2.cp1.y, betweenPoint.y);
-            betweenPoint.x = v;
-        } else if (betweenPoint.y === null) {
-            [v, t] = interpolateQuadratic(p1.x, p2.x, p2.cp1.x, betweenPoint.x);
-            betweenPoint.y = v;
-        }
     } else {
-        if (betweenPoint.x === null) {
-            [v, t] = interpolateLinear(p1.y, p2.y, betweenPoint.y);
-            betweenPoint.x = v;
-        } else if (betweenPoint.y === null) {
-            [v, t] = interpolateLinear(p1.x, p2.x, betweenPoint.x);
-            betweenPoint.y = v;
+        const cp = p2.cp1 || p2.cp2;
+        if (cp) {
+            if (betweenPoint.x === null) {
+                [v, t] = interpolateQuadratic(p1.y, p2.y, cp.y, betweenPoint.y);
+                betweenPoint.x = v;
+            } else if (betweenPoint.y === null) {
+                [v, t] = interpolateQuadratic(p1.x, p2.x, cp.x, betweenPoint.x);
+                betweenPoint.y = v;
+            }
+        } else {
+            if (betweenPoint.x === null) {
+                [v, t] = interpolateLinear(p1.y, p2.y, betweenPoint.y);
+                betweenPoint.x = v;
+            } else if (betweenPoint.y === null) {
+                [v, t] = interpolateLinear(p1.x, p2.x, betweenPoint.x);
+                betweenPoint.y = v;
+            }
         }
     }
+
     betweenPoint.t = t;
     return betweenPoint;
 }
@@ -352,8 +353,8 @@ export function interpolateCurve(p1, p2, betweenPoint) {
  * a simple deflection parameter
  * @param p1
  * @param p2
- * @param t How far along the line between p1 and p2 the control point should start
- * @param deflection Which direction and how far perpendicular to the p1-p2 line
+ * @param t How far along the linear between p1 and p2 the control point should start
+ * @param deflection Which direction and how far perpendicular to the p1-p2 linear
  * the control point should be
  * @returns {{x: number, y: number}}
  */
@@ -369,8 +370,35 @@ export function simpleQuadratic(p1, p2, t = 0.5, deflection = 0) {
 }
 
 
+
 /**
- * Get the cubic bezier control point representation of the curve from start to end.
+ * Increase the degree of a cubic curve (e.g. quadratic to cubic) without changing its shape
+ * @param p1 Starting point of the curve
+ * @param p2 Ending point of the curve and holds the other control points
+ */
+export function elevateDegree(p1, p2) {
+    const cps = [p1];
+    for (let cp in p2) {
+        if (cp.startsWith("cp") && p2.hasOwnProperty(cp)) {
+            cps.push(p2[cp]);
+        }
+    }
+    cps.push(extractPoint(p2));
+
+    const newEndPoint = extractPoint(p2);
+    // see https://www.cs.mtu.edu/~shene/COURSES/cs3621/NOTES/spline/Bezier/bezier-elev.html
+    for (let i = 1, newDegree = cps.length; i < newDegree; ++i) {
+        const coefficient = i / newDegree;
+
+        newEndPoint["cp" + i] = makePoint((cpsPrev, cps)=> {
+            return coefficient * cpsPrev + (1 - coefficient) * cps;
+        }, cps[i-1], cps[i]);
+    }
+    return newEndPoint;
+}
+
+/**
+ * Get the cubic cubic control point representation of the curve from start to end.
  * If end already has 2 control points return them; if end has only 1 control point (quadratic)
  * then return 2 control points that would lead to an equivalent curve; if end has no control
  * point (linear) then return 2 control points located identically at the midpoint between
@@ -387,22 +415,16 @@ export function getCubicControlPoints(start, end) {
     // quadratic
     const cp = end.cp1 || end.cp2;
     if (cp) {
-        const cp1 = {
-            x: start.x + 2 / 3 * (cp.x - start.x),
-            y: start.y + 2 / 3 * (cp.y - start.y)
-        };
-        const cp2 = {
-            x: end.x + 2 / 3 * (cp.x - end.x),
-            y: end.y + 2 / 3 * (cp.y - end.y)
-        };
-        return [cp1, cp2];
+        const newEnd = elevateDegree(start, end);
+        return [newEnd.cp1, newEnd.cp2];
     }
-    // linear (infinite possibilities, just choose both of them to be in the middle)
-    return [averagePoint(start, end), averagePoint(start, end)];
+    // linear
+    const newEnd = elevateDegree(start, elevateDegree(start, end));
+    return [newEnd.cp1, newEnd.cp2];
 }
 
 /**
- * Transform start curve into end curve (results in cubic bezier) with the amount
+ * Transform start curve into end curve (results in cubic cubic) with the amount
  * of transformation determined by t [0,1]
  * @param startP1
  * @param startP2
@@ -422,8 +444,8 @@ export function transformCurve(startP1, startP2, endP1, endP2, t) {
     const [startCp1, startCp2] = getCubicControlPoints(startP1, startP2);
     const [endCp1, endCp2] = getCubicControlPoints(endP1, endP2);
     return {
-        x  : startP2.x * (1 - t) + endP2.x * t,
-        y  : startP2.y * (1 - t) + endP2.y * t,
+        x: startP2.x * (1 - t) + endP2.x * t,
+        y: startP2.y * (1 - t) + endP2.y * t,
         cp1: {
             x: startCp1.x * (1 - t) + endCp1.x * t,
             y: startCp1.y * (1 - t) + endCp1.y * t

@@ -9,16 +9,6 @@ describe("#point", function () {
         assert.strictEqual(pt.y, 5);
     });
 });
-describe("#averagePoint", function () {
-    const p1 = dp.origin;
-    const p2 = dp.point(100, 200);
-    it("should return p1 if t=0", function () {
-        assert.deepStrictEqual(dp.averagePoint(p1, p2, 0), p1);
-    });
-    it("should return p2 if t=1", function () {
-        assert.deepStrictEqual(dp.averagePoint(p1, p2, 1), p2);
-    });
-});
 
 describe("addVector", function () {
     const p1 = dp.point(50, 20);

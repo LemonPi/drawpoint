@@ -19,4 +19,5 @@ describe("drawpoint", function () {
     importTest("color", "./color");
     importTest("numeric", "./numeric");
     importTest("point", "./point");
+    importTest("curve", "./curve");
 });

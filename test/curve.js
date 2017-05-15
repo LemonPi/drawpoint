@@ -1,254 +1,246 @@
 const dp = require("../dist/drawpoint");
+// const dp = require("../src/index");
 const assert = require("assert");
 const c = require("./common");
 
-describe("#point", function () {
-    it("should create a simple point object", function () {
-        const pt = dp.point(10, 5);
-        assert.strictEqual(pt.x, 10);
-        assert.strictEqual(pt.y, 5);
+function getRandomCurves() {
+    const pLine = c.getRandomPoint();
+    const pQuadratic = c.getRandomPoint();
+    pQuadratic.cp1 = c.getRandomPoint();
+    const pCubic = c.getRandomPoint();
+    pCubic.cp1 = c.getRandomPoint();
+    pCubic.cp2 = c.getRandomPoint();
+
+    return [pLine, pQuadratic, pCubic];
+}
+
+const p1 = c.getRandomPoint();
+describe("#applyToCurve", function () {
+    const [pLine, pQuadratic, pCubic] = getRandomCurves();
+    it("should detect lines", function () {
+        let ok = false;
+        dp.applyToCurve(p1, pLine, {
+            linear: (pp1, p2) => {
+                assert.deepStrictEqual(pp1, p1);
+                assert.deepStrictEqual(p2, pLine);
+                ok = true;
+            },
+            quadratic: () => {
+                assert.fail(0, 0, "linear treated as quadratic");
+            },
+            cubic: () => {
+                assert.fail(0, 0, "linear treated as cubic");
+            },
+        });
+        assert.ok(ok);
     });
-});
-describe("#averagePoint", function () {
-    const p1 = dp.origin;
-    const p2 = dp.point(100, 200);
-    it("should return p1 if t=0", function () {
-        assert.deepStrictEqual(dp.averagePoint(p1, p2, 0), p1);
+    it("should detect quadratic curves", function () {
+        let ok = false;
+        dp.applyToCurve(p1, pQuadratic, {
+            linear: () => {
+                assert.fail(0, 0, "quadratic treated as linear");
+            },
+            quadratic: (pp1, p2, cp) => {
+                assert.deepStrictEqual(pp1, p1);
+                assert.deepStrictEqual(p2, dp.extractPoint(pQuadratic));
+                assert.deepStrictEqual(cp, pQuadratic.cp1);
+                ok = true;
+            },
+            cubic: () => {
+                assert.fail(0, 0, "quadratic treated as cubic");
+            },
+        });
+        assert.ok(ok);
     });
-    it("should return p2 if t=1", function () {
-        assert.deepStrictEqual(dp.averagePoint(p1, p2, 1), p2);
+    it("should detect cubic curves", function () {
+        let ok = false;
+        dp.applyToCurve(p1, pCubic, {
+            linear: () => {
+                assert.fail(0, 0, "cubic treated as linear");
+            },
+            quadratic: () => {
+                assert.fail(0, 0, "cubic treated as quadratic");
+            },
+            cubic: (pp1, p2, cp1, cp2) => {
+                assert.deepStrictEqual(pp1, p1);
+                assert.deepStrictEqual(p2, dp.extractPoint(pCubic));
+                assert.deepStrictEqual(cp1, pCubic.cp1);
+                assert.deepStrictEqual(cp2, pCubic.cp2);
+                ok = true;
+            },
+        });
+        assert.ok(ok);
     });
 });
 
-describe("addVector", function () {
-    const p1 = dp.point(50, 20);
-    const p2 = dp.point(100, 200);
-    it("should treat points as vectors relative to (0,0)", function () {
-        const sum = dp.addVector(p1, p2);
-        assert.strictEqual(sum.x, p2.x + p1.x);
-        assert.strictEqual(sum.y, p2.y + p1.y);
-    });
-});
-
-describe("#diff", function () {
-    const p1 = dp.point(50, 20);
-    const p2 = dp.point(100, 200);
-    it("diff(p1,p2) should return vector p1 -> p2", function () {
-        const d = dp.diff(p1, p2);
-        assert.strictEqual(d.x, p2.x - p1.x);
-        assert.strictEqual(d.y, p2.y - p1.y);
-    });
-    it("should return (0,0) when diffing against self", function () {
-        const d = dp.diff(p1, p1);
-        assert.strictEqual(d.x, 0);
-        assert.strictEqual(d.y, 0);
-    })
-});
-
-describe("#norm", function () {
-    it("should return 0 when vector is (0,0)", function () {
-        assert.strictEqual(dp.norm(dp.origin), 0);
-    });
-    it("should treat points as vectors coming from (0,0)", function () {
-        const pt = dp.point(50, 20);
-        assert.strictEqual(dp.norm(pt), Math.sqrt(pt.x * pt.x + pt.y * pt.y));
-    });
-});
-
-describe("#scale", function () {
-    const scaleBys = [2, 2.5, 1, 5, 0, -2];
-    it("should scale relative to (0,0) when reference is unspecified", function () {
-        const pt = dp.point(5, 10);
-        scaleBys.forEach((scaleBy) => {
-            const scaledPt = dp.scale(pt, scaleBy);
-            assert.strictEqual(scaledPt.x, pt.x * scaleBy);
-            assert.strictEqual(scaledPt.y, pt.y * scaleBy);
+describe("#getPointOnCurve", function () {
+    const [pLine, pQuadratic, pCubic] = getRandomCurves();
+    const curves = [pLine, pQuadratic, pCubic];
+    const ts = [0.1, 0.5, -0.1, 0.7, 1.1];
+    it("should give start point when t = 0", function () {
+        curves.forEach((p2) => {
+            const pt = dp.getPointOnCurve(0, p1, p2);
+            assert.deepEqual(pt, p1);
         });
     });
-    it("should be equivalent to adding the difference vector scaled relative to (0,0)", function () {
-        const p1 = dp.point(55, 100);
-        const p2 = dp.point(100, 200);
-        const diff = dp.diff(p1, p2);
-        scaleBys.forEach((scaleBy) => {
-            assert.deepStrictEqual(dp.scale(p2, scaleBy, p1), dp.addVector(p1, dp.scale(diff, scaleBy)));
+    it("should give end point when t = 1", function () {
+        curves.forEach((p2) => {
+            const pt = dp.getPointOnCurve(1, p1, p2);
+            assert.deepEqual(pt, dp.extractPoint(p2));
         });
-    })
+    });
+    it("should split lines correctly", function () {
+        ts.forEach((t) => {
+            const pt = dp.getPointOnCurve(t, p1, pLine);
+            c.assertCloseTo(pt.x, p1.x * (1 - t) + pLine.x * t);
+            c.assertCloseTo(pt.y, p1.y * (1 - t) + pLine.y * t);
+        });
+    });
+    it("should treat curves with control points along the curve like lines", function () {
+        // a quadratic with a control point along the linear (equivalent to a linear)
+        const pLineQuadratic = dp.elevateDegree(p1, pLine);
+        const pLineCubic = dp.elevateDegree(p1, pLineQuadratic);
+        // a cubic with control points along the linear (equivalent to a linear)
+
+        ts.forEach((t) => {
+            const pt = dp.getPointOnCurve(t, p1, pLine);
+            c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, pLineQuadratic), pt);
+            c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, pLineCubic), pt);
+        });
+    });
 });
 
-describe("#getUnitVector", function () {
-    it("should return NaN when (0,0) is the input vector", function () {
-        const uv = dp.getUnitVector(dp.origin);
-        assert(isNaN(uv.x));
-        assert(isNaN(uv.y));
-    });
-    const points = [dp.point(5, 10), dp.point(-22, 2), dp.point(0, 100), dp.point(100, 0)];
-    it("should return vectors with norm 1", function () {
-        points.forEach((pt) => {
-            const uv = dp.getUnitVector(pt);
-            c.assertCloseTo(dp.norm(uv), 1);
+describe("#elevateDegree", function () {
+    const [pLine, pQuadratic] = getRandomCurves();
+    const ts = [0.1, 0.5, -0.1, 0.7, 1.1];
+    it("should increase the degree but return the same points per t for linear", function () {
+        const pLineQuadratic = dp.elevateDegree(p1, pLine);
+        const pLineCubic = dp.elevateDegree(p1, pLineQuadratic);
+        assert.deepStrictEqual(dp.extractPoint(pLineQuadratic), pLine);
+
+        ts.forEach((t) => {
+            const pt = dp.getPointOnCurve(t, p1, pLine);
+            c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, pLineQuadratic), pt);
+            c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, pLineCubic), pt);
         });
     });
-    it("should return vectors with the same x/y ratio", function () {
-        points.forEach((pt) => {
-            const uv = dp.getUnitVector(pt);
-            if (uv.y !== 0) {
-                c.assertCloseTo(uv.x / uv.y, pt.x / pt.y);
+    it("should increase the degree but return the same points per t for quadratic", function () {
+        const pQuadraticCubic = dp.elevateDegree(p1, pQuadratic);
+        assert.deepStrictEqual(dp.extractPoint(pQuadraticCubic), dp.extractPoint(pQuadratic));
+
+        ts.forEach((t) => {
+            const pt = dp.getPointOnCurve(t, p1, pQuadratic);
+            c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, pQuadraticCubic), pt);
+        });
+    });
+});
+
+describe("#splitCurve", function () {
+    const curves = getRandomCurves();
+    it("should always start and end at original points (left.p1 == p1 && right.p2 == p2)", function () {
+        curves.forEach((p2) => {
+            // t can be anything, not necessarily confined to [0,1]
+            // but just that when it's outside [0,1] it won't be on the curve
+            const sp = dp.splitCurve(c.rand(-10, 10), p1, p2);
+            assert.deepStrictEqual(sp.left.p1, p1);
+            assert.deepStrictEqual(sp.right.p2, dp.extractPoint(p2));
+        });
+    });
+    it("should always share the splitting point (left.p2 = right.p1)", function () {
+        curves.forEach((p2) => {
+            // t can be anything, not necessarily confined to [0,1]
+            // but just that when it's outside [0,1] it won't be on the curve
+            const sp = dp.splitCurve(c.rand(-10, 10), p1, p2 );
+            assert.deepStrictEqual(sp.left.p2, sp.right.p1);
+        });
+    });
+    it("should give back start point when t=0", function () {
+        curves.forEach((p2) => {
+            const sp = dp.splitCurve(0, p1, p2);
+
+            // after splitting the control points are attached to the left and right curves rather than the end points
+            if (p2.cp1) {
+                sp.right.p2.cp1 = sp.right.cp1;
+            }
+            if (p2.cp2) {
+                sp.right.p2.cp2 = sp.right.cp2;
+            }
+
+            assert.deepStrictEqual(sp.left.p1, p1);
+            assert.deepStrictEqual(sp.left.p2, p1);
+            assert.deepStrictEqual(sp.right.p1, p1);
+            assert.deepStrictEqual(sp.right.p2, p2);
+        });
+    });
+    it("should give back end point when t=1", function () {
+        curves.forEach((p2) => {
+            const sp = dp.splitCurve(1, p1, p2);
+
+            // after splitting the control points are attached to the left and right curves rather than the end points
+            if (sp.left.cp1) {
+                sp.left.p2.cp1 = sp.left.cp1;
+            }
+            if (sp.left.cp2) {
+                sp.left.p2.cp2 = sp.left.cp2;
+            }
+
+            assert.deepStrictEqual(sp.left.p1, p1);
+            assert.deepStrictEqual(sp.left.p2, p2);
+            assert.deepStrictEqual(sp.right.p1, p2);
+            const extractedP2 = dp.extractPoint(p2);
+            assert.deepStrictEqual(sp.right.p2, extractedP2);
+            if (p2.cp1) {
+                assert.deepStrictEqual(sp.right.cp1, extractedP2);
+            }
+            if (p2.cp2) {
+                assert.deepStrictEqual(sp.right.cp2, extractedP2);
             }
         });
     });
-});
 
-describe("#getPerpendicularVector", function () {
-    it("should return NaN when (0,0) is the input vector", function () {
-        const uv = dp.getPerpendicularVector(dp.origin);
-        assert(isNaN(uv.x));
-        assert(isNaN(uv.y));
-    });
-    const points = [dp.point(5, 10), dp.point(-22, 2), dp.point(0, 100), dp.point(100, 0)];
-    it("should return vectors with norm 1", function () {
-        points.forEach((pt) => {
-            const uv = dp.getUnitVector(pt);
-            c.assertCloseTo(dp.norm(uv), 1);
-        });
-    });
-    it("should return perpendicular vectors (dot product with original = 0)", function () {
-        points.forEach((pt) => {
-            const uv = dp.getPerpendicularVector(pt);
-            assert.strictEqual(uv.x * pt.x + uv.y * pt.y, 0);
-        });
-    });
-});
+    const tSplits = [0.2, 0.4, 0.6, 0.8];
+    const tSteps = [0.01, 0.05, 0.1, 0.19, 0.25, 0.39, 0.5, 0.7, 0.9];
+    curves.forEach((p2, degree) => {
+        it("should give back the original curve for degree " + (degree + 1) , function () {
+            tSplits.forEach((tSplit)=>{
 
-describe("#adjust", function () {
-    const pt = dp.point(50, 10);
-    pt.cp1 = dp.point(100, 20);
-    pt.cp2 = dp.point(-20, 20);
-    it("should not move the point when adjusting by 0,0", function () {
-        const adjusted = dp.adjust(pt, 0, 0);
-        assert.deepStrictEqual(adjusted, pt);
-    });
-    it("should move by the specified amount", function () {
-        c.getRandomPoints().forEach((moveBy) => {
-            const adjusted = dp.adjust(pt, moveBy.x, moveBy.y);
-            assert.deepStrictEqual(adjusted.cp1, dp.addVector(pt.cp1, moveBy));
-            assert.deepStrictEqual(adjusted.cp2, dp.addVector(pt.cp2, moveBy));
-            assert.deepStrictEqual(adjusted.x, pt.x + moveBy.x);
-            assert.deepStrictEqual(adjusted.y, pt.y + moveBy.y);
-        });
-    });
-});
+                const sp = dp.splitCurve(tSplit, p1, p2);
+                sp.left.p2.cp1 = sp.left.cp1;
+                sp.left.p2.cp2 = sp.left.cp2;
+                sp.right.p2.cp1 = sp.right.cp1;
+                sp.right.p2.cp2 = sp.right.cp2;
 
-describe("#extractPoint", function () {
-    it("should remove any control points", function () {
-        const pt = dp.point(50, 10);
-        pt.cp1 = dp.point(100, 20);
-        pt.cp2 = dp.point(-20, 20);
-        const extracted = dp.extractPoint(pt);
-        assert(extracted.hasOwnProperty("cp1") === false);
-        assert(extracted.hasOwnProperty("cp2") === false);
-        assert.strictEqual(extracted.x, pt.x);
-        assert.strictEqual(extracted.y, pt.y);
-    });
-});
+                tSteps.forEach((t)=>{
+                    // expected point
+                    const expectedPt =  dp.getPointOnCurve(t, p1, p2);
+                    let actualPt;
+                    // would be on the left side
+                    if (t < tSplit) {
+                        actualPt = dp.getPointOnCurve(t/tSplit, sp.left.p1, sp.left.p2);
+                    } else {
+                        actualPt = dp.getPointOnCurve((t-tSplit)/(1-tSplit), sp.right.p1, sp.right.p2);
+                    }
 
-describe("#reflect", function () {
-    it("should reflect across y axis by default", function () {
-        c.getRandomPoints().forEach((pt) => {
-            const reflected = dp.reflect(pt);
-            assert.strictEqual(reflected.x, -pt.x);
-            assert.strictEqual(reflected.y, pt.y);
-        });
-    });
-    it("should reflect across x axis when given m = 0, b = 0", function () {
-        c.getRandomPoints().forEach((pt) => {
-            const reflected = dp.reflect(pt, 0, 0);
-            assert.strictEqual(reflected.x, pt.x);
-            assert.strictEqual(reflected.y, -pt.y);
-        })
-    })
-});
-
-describe("#rotatePoints", function () {
-    const points = c.getRandomPoints();
-    it("should not rotate if given rad = 0", function () {
-        const rotated = dp.clone(points);
-        dp.rotatePoints(dp.origin, 0, ...rotated);
-        assert.deepStrictEqual(rotated, points);
-    });
-    const rotatedBys = [0.1, 0.5, -0.5, 4, 20];
-    it("should keep magnitude but add angle when rotating about origin", function () {
-        rotatedBys.forEach((rotatedBy) => {
-            const rotated = dp.clone(points);
-            dp.rotatePoints(dp.origin, rotatedBy, ...rotated);
-
-            rotated.forEach((rpt, i) => {
-                const pt = points[i];
-                c.assertCloseTo(dp.norm(rpt), dp.norm(pt));
-                c.assertCloseTo(dp.angle(rpt), dp.unwrapRad(dp.angle(pt) + rotatedBy));
+                    c.assertDeepCloseTo(actualPt, expectedPt);
+                });
             });
         });
     });
-    it("should rotate the points' diffs relative to a pivot", function () {
-        rotatedBys.forEach((rotatedBy) => {
-            const rotated = dp.clone(points);
-            const pivot = c.getRandomPoints(1)[0];
-            dp.rotatePoints(pivot, rotatedBy, ...rotated);
 
-            rotated.forEach((rpt, i) => {
-                const pt = points[i];
-                const rdiff = dp.diff(pivot, rpt);
-                const diff = dp.diff(pivot, pt);
-                c.assertCloseTo(dp.norm(rdiff), dp.norm(diff));
-                c.assertCloseTo(dp.angle(rdiff), dp.unwrapRad(dp.angle(diff) + rotatedBy));
-            });
-        });
-    });
 });
 
-describe("#scalePoints", function () {
-    const points = c.getRandomPoints();
-    it("should not scale if given scaleBy = 1", function () {
-        const scaled = dp.clone(points);
-        dp.scalePoints(dp.origin, 1, ...scaled);
-        assert.deepStrictEqual(scaled, points);
-    });
-    const scaledBys = [0.1, 0.5, 2, 10, -0.5];
-    it("should multiple norm when scaling about origin", function () {
-        scaledBys.forEach((scaledBy) => {
-            const scaled = dp.clone(points);
-            dp.scalePoints(dp.origin, scaledBy, ...scaled);
+describe("#interpolateCurve", function () {
+    const [pLine, pQuadratic, pCubic] = getRandomCurves();
+});
 
-            scaled.forEach((spt, i) => {
-                const pt = points[i];
-                c.assertCloseTo(dp.norm(spt), dp.norm(pt) * Math.abs(scaledBy));
-            });
-        });
-    });
-    it("should keep angle when scaling about origin", function () {
-        scaledBys.forEach((scaledBy) => {
-            const scaled = dp.clone(points);
-            dp.scalePoints(dp.origin, scaledBy, ...scaled);
+describe("#simpleQuadratic", function () {
 
-            scaled.forEach((spt, i) => {
-                const pt = points[i];
-                // goes to the other side when scaling by negative
-                c.assertCloseTo(dp.angle(spt), dp.unwrapRad(dp.angle(pt) + ((scaledBy >= 0) ? 0 : Math.PI)));
-            });
-        });
-    });
-    it("should scale diffs relative to center", function () {
-        scaledBys.forEach((scaledBy) => {
-            const scaled = dp.clone(points);
-            const center = c.getRandomPoints(1)[0];
-            dp.scalePoints(center, scaledBy, ...scaled);
+});
 
-            scaled.forEach((spt, i) => {
-                const pt = points[i];
-                const sdiff = dp.diff(center, spt);
-                const diff = dp.diff(center, pt);
-                c.assertCloseTo(dp.norm(sdiff), dp.norm(diff) * Math.abs(scaledBy));
-                c.assertCloseTo(dp.angle(sdiff), dp.unwrapRad(dp.angle(diff) + ((scaledBy >= 0) ? 0 : Math.PI)));
-            });
-        });
-    });
+describe("#getCubicControlPoints", function () {
+
+});
+
+describe("#transformCurve", function () {
+
 });
