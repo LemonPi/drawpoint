@@ -18,16 +18,20 @@ function toPaddedHexString(num, len) {
     return "0".repeat(len - str.length) + str;
 }
 
-const floatEpsilon = 0.0000001;
+const floatEpsilon = 0.000000000001;
+
+function closeTo(actual, expected, delta = floatEpsilon) {
+    return (Math.abs(actual - expected) < delta);
+}
 
 function assertCloseTo(actual, expected, delta = floatEpsilon) {
     if (Math.abs(actual - expected) > delta) {
-        throw new assert.AssertionError({actual, expected, message:`${actual} close to ${expected} within ${delta}`});
+        throw new assert.AssertionError({actual, expected, message: `${actual} close to ${expected} within ${delta}`});
     }
 }
-function assertDeepCloseTo(actual, expected) {
-    if (deepCloseTo(actual,expected) == false) {
-        throw new assert.AssertionError({actual, expected});
+function assertDeepCloseTo(actual, expected, delta = floatEpsilon) {
+    if (deepCloseTo(actual, expected, {comp: (a, b) => closeTo(a, b, delta)}) === false) {
+        throw new assert.AssertionError({actual, expected, message: `close to within ${delta}`});
     }
 }
 
@@ -45,5 +49,6 @@ function getRandomPoint() {
 }
 
 module.exports = {
-    rand, randInt, toPaddedHexString, assertCloseTo, assertDeepCloseTo, getRandomPoints, getRandomPoint
+    floatEpsilon,
+    rand, randInt, toPaddedHexString, closeTo, assertCloseTo, assertDeepCloseTo, getRandomPoints, getRandomPoint
 };
