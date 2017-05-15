@@ -40,7 +40,7 @@ describe("#applyToCurve", function () {
             linear: () => {
                 assert.fail(0, 0, "quadratic treated as linear");
             },
-            quadratic: (pp1, p2, cp) => {
+            quadratic: (pp1, cp, p2) => {
                 assert.deepStrictEqual(pp1, p1);
                 assert.deepStrictEqual(p2, dp.extractPoint(pQuadratic));
                 assert.deepStrictEqual(cp, pQuadratic.cp1);
@@ -61,7 +61,7 @@ describe("#applyToCurve", function () {
             quadratic: () => {
                 assert.fail(0, 0, "cubic treated as quadratic");
             },
-            cubic: (pp1, p2, cp1, cp2) => {
+            cubic: (pp1, cp1, cp2, p2) => {
                 assert.deepStrictEqual(pp1, p1);
                 assert.deepStrictEqual(p2, dp.extractPoint(pCubic));
                 assert.deepStrictEqual(cp1, pCubic.cp1);
@@ -150,7 +150,7 @@ describe("#splitCurve", function () {
         curves.forEach((p2) => {
             // t can be anything, not necessarily confined to [0,1]
             // but just that when it's outside [0,1] it won't be on the curve
-            const sp = dp.splitCurve(c.rand(-10, 10), p1, p2 );
+            const sp = dp.splitCurve(c.rand(-10, 10), p1, p2);
             assert.deepStrictEqual(sp.left.p2, sp.right.p1);
         });
     });
@@ -201,8 +201,8 @@ describe("#splitCurve", function () {
     const tSplits = [0.2, 0.4, 0.6, 0.8];
     const tSteps = [0.01, 0.05, 0.1, 0.19, 0.25, 0.39, 0.5, 0.7, 0.9];
     curves.forEach((p2, degree) => {
-        it("should give back the original curve for degree " + (degree + 1) , function () {
-            tSplits.forEach((tSplit)=>{
+        it("should give back the original curve for degree " + (degree + 1), function () {
+            tSplits.forEach((tSplit) => {
 
                 const sp = dp.splitCurve(tSplit, p1, p2);
                 sp.left.p2.cp1 = sp.left.cp1;
@@ -210,15 +210,15 @@ describe("#splitCurve", function () {
                 sp.right.p2.cp1 = sp.right.cp1;
                 sp.right.p2.cp2 = sp.right.cp2;
 
-                tSteps.forEach((t)=>{
+                tSteps.forEach((t) => {
                     // expected point
-                    const expectedPt =  dp.getPointOnCurve(t, p1, p2);
+                    const expectedPt = dp.getPointOnCurve(t, p1, p2);
                     let actualPt;
                     // would be on the left side
                     if (t < tSplit) {
-                        actualPt = dp.getPointOnCurve(t/tSplit, sp.left.p1, sp.left.p2);
+                        actualPt = dp.getPointOnCurve(t / tSplit, sp.left.p1, sp.left.p2);
                     } else {
-                        actualPt = dp.getPointOnCurve((t-tSplit)/(1-tSplit), sp.right.p1, sp.right.p2);
+                        actualPt = dp.getPointOnCurve((t - tSplit) / (1 - tSplit), sp.right.p1, sp.right.p2);
                     }
 
                     c.assertDeepCloseTo(actualPt, expectedPt);

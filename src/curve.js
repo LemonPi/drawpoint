@@ -9,11 +9,11 @@ export function applyToCurve(p1, p2, {linear, quadratic, cubic}) {
     const ep1 = extractPoint(p1);
     const ep2 = extractPoint(p2);
     if (p2.cp1 && p2.cp2) {
-        return cubic(ep1, ep2, p2.cp1, p2.cp2);
+        return cubic(ep1, p2.cp1, p2.cp2, ep2);
     }
     const cp = p2.cp1 || p2.cp2;
     if (cp) {
-        return quadratic(ep1, ep2, cp);
+        return quadratic(ep1, cp, ep2);
     } else {
         return linear(ep1, ep2);
     }
@@ -22,13 +22,13 @@ export function applyToCurve(p1, p2, {linear, quadratic, cubic}) {
 export function getPointOnCurve(t, p1, p2) {
     return applyToCurve(p1, p2, {
         linear: (...cps) => {
-            return makePoint(getLinearValue.bind(null,t), ...cps);
+            return makePoint(getLinearValue.bind(null, t), ...cps);
         },
         quadratic: (...cps) => {
-            return makePoint(getQuadraticValue.bind(null,t), ...cps);
+            return makePoint(getQuadraticValue.bind(null, t), ...cps);
         },
         cubic: (...cps) => {
-            return makePoint(getCubicValue.bind(null,t), ...cps);
+            return makePoint(getCubicValue.bind(null, t), ...cps);
         },
     });
 }
@@ -38,29 +38,28 @@ function getLinearValue(t, p1, p2) {
     return t * (p2 - p1) + p1;
 }
 
-function getQuadraticValue(t, p1, p2, cp) {
+function getQuadraticValue(t, p1, cp, p2) {
     // (1 - t)^2 * p1 + 2(1 - t)t * cp + t^2 * p2
     // gather coefficients of t^2, t, and 1
     return (p1 + p2 - 2 * cp) * t * t + 2 * (cp - p1) * t + p1;
 }
 
-function getCubicValue(t, p1, p2, cp1, cp2) {
+function getCubicValue(t, p1, cp1, cp2, p2) {
     // (1 - t)^3 * p1 + 3(1 - t)^2 * t * cp1 + 3(1 - t)t^2 * cp2 + t^3 * p2
     // leave in unexpanded form
     return p1 * (1 - t) * (1 - t) * (1 - t) + 3 * cp1 * (1 - t) * (1 - t) * t +
         3 * cp2 * (1 - t) * t * t + p2 * t * t * t;
 }
 
-function splitBezier(t, p1, p2, cp1, cp2) {
+function splitBezier(t, p1, cp1, cp2, p2) {
     // split a cubic cubic based on De Casteljau, t is between [0,1]
     // just a series of linear interpolations
-    const A = p1, B = cp1, C = cp2, D = p2;
-    const E = makePoint(getLinearValue.bind(null,t), A, B);
-    const F = makePoint(getLinearValue.bind(null,t), B, C);
-    const G = makePoint(getLinearValue.bind(null,t), C, D);
-    const H = makePoint(getLinearValue.bind(null,t), E, F);
-    const J = makePoint(getLinearValue.bind(null,t), F, G);
-    const K = makePoint(getLinearValue.bind(null,t), H, J);
+    const E = makePoint(getLinearValue.bind(null, t), p1, cp1);
+    const F = makePoint(getLinearValue.bind(null, t), cp1, cp2);
+    const G = makePoint(getLinearValue.bind(null, t), cp2, p2);
+    const H = makePoint(getLinearValue.bind(null, t), E, F);
+    const J = makePoint(getLinearValue.bind(null, t), F, G);
+    const K = makePoint(getLinearValue.bind(null, t), H, J);
     return {
         left: {
             p1,
@@ -77,12 +76,11 @@ function splitBezier(t, p1, p2, cp1, cp2) {
     };
 }
 
-function splitQuadratic(t, p1, p2, cp) {
+function splitQuadratic(t, p1, cp, p2) {
     // split a quadratic cubic based on De Casteljau, t is between [0,1]
-    const A = p1, B = cp, C = p2;
-    const D = makePoint(getLinearValue.bind(null,t), A, B);
-    const E = makePoint(getLinearValue.bind(null,t), B, C);
-    const F = makePoint(getLinearValue.bind(null,t), D, E);
+    const D = makePoint(getLinearValue.bind(null, t), p1, cp);
+    const E = makePoint(getLinearValue.bind(null, t), cp, p2);
+    const F = makePoint(getLinearValue.bind(null, t), D, E);
 
     return {
         left: {
@@ -142,8 +140,8 @@ function interpolateLinear(p1, p2, p) {
         console.log("Linear interpolation vertical linear");
         return p;
     }
-    const t = (p - p1) / (p2 - p1);
-    return [getLinearValue(t, p1, p2), t];
+    // t
+    return (p - p1) / (p2 - p1);
 }
 
 function solveQuadraticEquation(a, b, c) {
@@ -162,34 +160,20 @@ function solveQuadraticEquation(a, b, c) {
 }
 
 
-function interpolateQuadratic(p1, p2, cp1, p) {
+function interpolateQuadratic(p1, cp1, p2, p) {
     const a = (p1 - 2 * cp1 + p2);
     const b = 2 * (cp1 - p1);
     const c = p1 - p;
 
     // 2 possible values for t
-    const ts = solveQuadraticEquation(a, b, c);
+    const ts = solveQuadraticEquation(a, b, c).filter((t) => {
+        return t >= 0 && t <= 1;
+    });
     if (ts.length === 0) {
         console.log("Quadratic interpolation out of bounds");
         return null;
     }
-
-    let t = ts[0];
-    if (ts.length === 2) {
-        if (t < 0 || t > 1) {
-            t = ts[1];
-        }
-    }
-
-    // t outside of 0 or 1 means something's wrong
-    if (t < 0 || t > 1) {
-        console.log("Quadratic interpolation out of bounds");
-    }
-
-    return [
-        getQuadraticValue(t, p1, p2, cp1),
-        t
-    ];
+    return ts;
 }
 
 function cubeRoot(v) {
@@ -283,67 +267,55 @@ function solveCubicEquation(a, b, c) {
     return [x1, x2, x3];
 }
 
-function interpolateCubic(p0, p1, p2, p3, p) {
+function interpolateCubic(p1, cp1, cp2, p2, p) {
     // and rewrite from [a(1-t)^3 + 3bt(1-t)^2 + 3c(1-t)t^2 + dt^3] form
-    p0 -= p;
     p1 -= p;
+    cp1 -= p;
+    cp2 -= p;
     p2 -= p;
-    p3 -= p;
 
     // to [t^3 + at^2 + bt + c] form:
-    const d = -p0 + 3 * p1 - 3 * p2 + p3;
-    const a = (3 * p0 - 6 * p1 + 3 * p2 ) / d;
-    const b = (-3 * p0 + 3 * p1) / d;
-    const c = p0 / d;
+    const d = -p1 + 3 * cp1 - 3 * cp2 + p2;
+    const a = (3 * p1 - 6 * cp1 + 3 * cp2 ) / d;
+    const b = (-3 * p1 + 3 * cp1) / d;
+    const c = p1 / d;
 
-    const roots = solveCubicEquation(a, b, c);
-
-    const ts = [];
-    let root;
-    for (let i = 0; i < roots.length; i++) {
-        root = roundToDec(roots[i], 15);
-        if (root >= 0 && root <= 1) {
-            ts.push(root);
-        }
-    }
-
-    return ts;
+    return solveCubicEquation(a, b, c).filter((t) => {
+        return t >= 0 && t <= 1;
+    });
 }
 
 
 export function interpolateCurve(p1, p2, betweenPoint) {
-    let v, t;
-    if (p2.cp1 && p2.cp2) {
-        if (betweenPoint.x === null) {
-            [t] = interpolateCubic(p1.y, p2.cp1.y, p2.cp2.y, p2.y, betweenPoint.y);
-            betweenPoint.x = getCubicValue(t, p1.x, p2.x, p2.cp1.x, p2.cp2.x);
-        } else if (betweenPoint.y === null) {
-            [t] = interpolateCubic(p1.x, p2.cp1.x, p2.cp2.x, p2.x, betweenPoint.x);
-            betweenPoint.y = getCubicValue(t, p1.y, p2.y, p2.cp1.y, p2.cp2.y);
-        }
-
+    let missingDim, knownDim;
+    if (betweenPoint.x === null) {
+        knownDim = "x";
+        missingDim = "y";
+    } else if (betweenPoint.y === null) {
+        knownDim = "y";
+        missingDim = "x";
     } else {
-        const cp = p2.cp1 || p2.cp2;
-        if (cp) {
-            if (betweenPoint.x === null) {
-                [v, t] = interpolateQuadratic(p1.y, p2.y, cp.y, betweenPoint.y);
-                betweenPoint.x = v;
-            } else if (betweenPoint.y === null) {
-                [v, t] = interpolateQuadratic(p1.x, p2.x, cp.x, betweenPoint.x);
-                betweenPoint.y = v;
-            }
-        } else {
-            if (betweenPoint.x === null) {
-                [v, t] = interpolateLinear(p1.y, p2.y, betweenPoint.y);
-                betweenPoint.x = v;
-            } else if (betweenPoint.y === null) {
-                [v, t] = interpolateLinear(p1.x, p2.x, betweenPoint.x);
-                betweenPoint.y = v;
-            }
-        }
+        return null;
     }
 
-    betweenPoint.t = t;
+    applyToCurve(p1, p2, {
+        linear: (...cps) => {
+            const t = interpolateLinear(...cps.map(cp => cp[knownDim]), betweenPoint[knownDim]);
+            betweenPoint[missingDim] = getLinearValue(t, ...cps.map(cp => cp[missingDim]));
+            betweenPoint.t = t;
+        },
+        quadratic: (...cps) => {
+            const t = interpolateQuadratic(...cps.map(cp => cp[knownDim]), betweenPoint[knownDim]);
+            betweenPoint[missingDim] = getQuadraticValue(t, ...cps.map(cp => cp[missingDim]));
+            betweenPoint.t = t;
+        },
+        cubic: (...cps) => {
+            const t = interpolateCubic(...cps.map(cp => cp[knownDim]), betweenPoint[knownDim]);
+            betweenPoint[missingDim] = getCubicValue(t, ...cps.map(cp => cp[missingDim]));
+            betweenPoint.t = t;
+        },
+    });
+
     return betweenPoint;
 }
 
@@ -370,7 +342,6 @@ export function simpleQuadratic(p1, p2, t = 0.5, deflection = 0) {
 }
 
 
-
 /**
  * Increase the degree of a cubic curve (e.g. quadratic to cubic) without changing its shape
  * @param p1 Starting point of the curve
@@ -390,9 +361,9 @@ export function elevateDegree(p1, p2) {
     for (let i = 1, newDegree = cps.length; i < newDegree; ++i) {
         const coefficient = i / newDegree;
 
-        newEndPoint["cp" + i] = makePoint((cpsPrev, cps)=> {
+        newEndPoint["cp" + i] = makePoint((cpsPrev, cps) => {
             return coefficient * cpsPrev + (1 - coefficient) * cps;
-        }, cps[i-1], cps[i]);
+        }, cps[i - 1], cps[i]);
     }
     return newEndPoint;
 }
@@ -403,11 +374,11 @@ export function elevateDegree(p1, p2) {
  * then return 2 control points that would lead to an equivalent curve; if end has no control
  * point (linear) then return 2 control points located identically at the midpoint between
  * start and end.
- * @param start
- * @param end
+ * @param p1
+ * @param p2
  * @returns {[*,*]} cp1 and cp2 of end point
  */
-export function getCubicControlPoints(start, end) {
+export function getCubicControlPoints(p1, p2) {
     // already a cubic, just return directly
     if (end.cp1 && end.cp2) {
         return [end.cp1, end.cp2];
