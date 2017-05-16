@@ -837,6 +837,7 @@ function getCubicControlPoints(p1, p2) {
             var newEnd = elevateDegree(p1, p2);
             return [newEnd.cp1, newEnd.cp2];
         },
+
         cubic: function cubic() {
             return [p2.cp1, p2.cp2];
         }

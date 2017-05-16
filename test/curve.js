@@ -23,15 +23,15 @@ describe("#applyToCurve", function () {
     it("should detect lines", function () {
         let ok = false;
         dp.applyToCurve(p1, pLinear, {
-            linear: (pp1, p2) => {
+            linear (pp1, p2)  {
                 assert.deepStrictEqual(pp1, p1);
                 assert.deepStrictEqual(p2, pLinear);
                 ok = true;
             },
-            quadratic: () => {
+            quadratic () {
                 assert.fail(0, 0, "linear treated as quadratic");
             },
-            cubic: () => {
+            cubic () {
                 assert.fail(0, 0, "linear treated as cubic");
             },
         });
@@ -58,13 +58,13 @@ describe("#applyToCurve", function () {
     it("should detect cubic curves", function () {
         let ok = false;
         dp.applyToCurve(p1, pCubic, {
-            linear: () => {
+            linear ()  {
                 assert.fail(0, 0, "cubic treated as linear");
             },
-            quadratic: () => {
+            quadratic ()  {
                 assert.fail(0, 0, "cubic treated as quadratic");
             },
-            cubic: (pp1, cp1, cp2, p2) => {
+            cubic (pp1, cp1, cp2, p2)  {
                 assert.deepStrictEqual(pp1, p1);
                 assert.deepStrictEqual(p2, dp.extractPoint(pCubic));
                 assert.deepStrictEqual(cp1, pCubic.cp1);
@@ -415,18 +415,18 @@ describe("#transformCurve", function () {
     const curves = getRandomCurves();
     const otherCurves = getRandomCurves();
     const ts = [-0.5, 0, 0.1, 0.5, 0.8, 1, 1.5];
-    curves.forEach((p2, degree)=>{
+    curves.forEach((p2, degree) => {
         const pp2 = otherCurves[degree];
-        it("should return original curve when t = 0 for degree " + (degree + 1), function() {
+        it("should return original curve when t = 0 for degree " + (degree + 1), function () {
             const newP2 = dp.transformCurve(0, p1, p2, pp2);
             ts.forEach((t) => {
-                c.assertDeepCloseTo(dp.getPointOnCurve(t,p1,newP2), dp.getPointOnCurve(t,p1,p2));
+                c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, newP2), dp.getPointOnCurve(t, p1, p2));
             });
         });
-        it("should return end curve when t = 1 for degree " + (degree + 1), function() {
+        it("should return end curve when t = 1 for degree " + (degree + 1), function () {
             const newP2 = dp.transformCurve(1, p1, p2, pp2);
             ts.forEach((t) => {
-                c.assertDeepCloseTo(dp.getPointOnCurve(t,p1,newP2), dp.getPointOnCurve(t,p1,pp2));
+                c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, newP2), dp.getPointOnCurve(t, p1, pp2));
             });
         });
     });

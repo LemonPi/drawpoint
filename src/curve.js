@@ -29,10 +29,10 @@ export function applyToCurve(p1, p2, {linear, quadratic, cubic}) {
 export function getPointOnCurve(t, p1, p2) {
     return applyToCurve(p1, p2, {
         linear: (...cps) => getPointOnLine(t, ...cps),
-        quadratic: (...cps) => {
+        quadratic(...cps) {
             return makePoint(getQuadraticValue.bind(null, t), ...cps);
         },
-        cubic: (...cps) => {
+        cubic(...cps) {
             return makePoint(getCubicValue.bind(null, t), ...cps);
         },
     });
@@ -384,11 +384,11 @@ export function elevateDegree(p1, p2) {
  */
 export function getCubicControlPoints(p1, p2) {
     return applyToCurve(p1, p2, {
-        linear: () => {
+        linear ()  {
             const newEnd = elevateDegree(p1, elevateDegree(p1, p2));
             return [newEnd.cp1, newEnd.cp2];
         },
-        quadratic: () => {
+        quadratic () {
             const newEnd = elevateDegree(p1, p2);
             return [newEnd.cp1, newEnd.cp2];
         },
