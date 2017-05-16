@@ -17,7 +17,8 @@ module.exports = {
         libraryTarget: 'umd',
     },
     devServer: {
-        publicPath: "/dist",
+        publicPath: "./dist",
+        public: "localhost:8080/demo",
     },
     devtool: "cheap-module-source-map",
     module: {

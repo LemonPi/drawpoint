@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>drawpoint</title>
+    <link rel="stylesheet" type="text/css" href="main.css">
+    <script src="../node_modules/context-2d-tracked/dist/Context2DTracked.min.js"></script>
+    <script src="../dist/drawpoint.js"></script>
+</head>
+<body>
+
+<section id="creation">
+    <canvas id="cv" width="600" height="600" style="border:solid black 2px"></canvas>
+    <div>
+        <input type="checkbox" id="trace" name="trace" value="trace" checked>
+        <label for="trace">Show control points</label>
+    </div>
+
+    <div>
+        <button id="clear">clear</button>
+        <button id="line">line</button>
+        <button id="quadratic">quadratic curve</button>
+        <button id="cubic">bezier curve</button>
+    </div>
+
+    </div>
+    <div>
+        <p id="explanation">Click on the canvas to set points down. Different modes expect different number of points
+            to draw a curve.</p>
+    </div>
+    <script>
+        "use strict";
+        // module is exported as a global variable when including it in a script tag
+        var dp = drawpoint;
+        (function () {
+
+
+            var cv = document.getElementById("cv");
+            // var explanation = document.getElementById("explanation");
+
+            // can use just as a global variable in the browser
+            var ctx = new Context2DTracked(cv.getContext("2d"));
+
+            // different modes expect different number of drawpoints; by default we enter linear mode
+            var expectedPoints = 0;
+            var points = [];
+
+            function clearCanvas() {
+                var canvasDimensions = ctx.transformPoint(cv.width, cv.height);
+                ctx.clearRect(0, 0, canvasDimensions.x, canvasDimensions.y);
+                points = [];
+            }
+
+            // preprocess points into the format to draw a curve
+            var processPoints = null;
+
+            function lineMode() {
+                expectedPoints = 2;
+                processPoints = function () {
+                    // do nothing
+                };
+            }
+
+            function quadraticMode() {
+                expectedPoints = 3;
+
+                processPoints = function (points) {
+                    points[2].cp1 = points[1];
+                    // swap out
+                    points[1] = points[2];
+                    points.length = 2;
+
+                };
+            }
+
+            function cubicMode() {
+                expectedPoints = 4;
+
+                processPoints = function (points) {
+                    points[3].cp1 = points[1];
+                    points[3].cp2 = points[2];
+                    points[1] = points[3];
+                    points.length = 2;
+                }
+            }
+
+
+            cv.addEventListener("click", function (e) {
+                e.preventDefault();
+                var x;
+                var y;
+                if (e.pageX || e.pageY) {
+                    x = e.pageX;
+                    y = e.pageY;
+                } else {
+                    x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+                    y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+                }
+                x -= cv.offsetLeft;
+                y -= cv.offsetTop;
+
+                var pt = dp.point(x, y);
+
+                ctx.beginPath();
+                dp.drawPoints(ctx, ...dp.drawCircle(pt, 1));
+                ctx.stroke();
+                ctx.fill();
+
+                points.push(pt);
+
+                if (points.length === expectedPoints) {
+                    processPoints(points);
+                    ctx.beginPath();
+                    dp.drawPoints(ctx, ...points);
+                    points[0] = points[points.length - 1];
+                    points.length = 1;
+                    ctx.stroke();
+                }
+
+                return false;
+            });
+
+            ctx.lineWidth = 2;
+            // default to simple linear mode
+            lineMode();
+
+            document.getElementById("clear").addEventListener("click", clearCanvas);
+            document.getElementById("line").addEventListener("click", lineMode);
+            document.getElementById("quadratic").addEventListener("click", quadraticMode);
+            document.getElementById("cubic").addEventListener("click", cubicMode);
+            var traceToggle = document.getElementById("trace");
+
+            function traceControl() {
+                console.log(traceToggle.checked);
+                ctx.showcontrol = traceToggle.checked;
+            }
+
+            traceToggle.onchange = traceControl;
+            traceControl();
+        })();
+    </script>
+</section>
+<section id="construction">
+    <figures>
+        <h1>Construction</h1>
+        <figure>
+            <script type="text/drawpointcode">
+    var p1 = dp.point(20, 20);
+    var p2 = dp.point(170, 170);
+
+    ctx.beginPath();
+    dp.drawPoints(ctx, p1, p2);
+    ctx.stroke();
+            </script>
+        </figure>
+
+        <figure>
+            <script type="text/drawpointcode">
+    var p1 = dp.point(20, 20);
+    var p2 = dp.point(170, 10);
+    p2.cp1 = dp.point(50, 50);
+
+    ctx.beginPath();
+    dp.drawPoints(ctx, p1, p2);
+    ctx.stroke();
+            </script>
+        </figure>
+
+        <figure>
+            <script type="text/drawpointcode">
+    var p1 = dp.point(20, 20);
+    var p2 = dp.point(170, 120);
+    p2.cp1 = dp.point(50, 50);
+    p2.cp2 = dp.point(90, 40);
+
+    ctx.beginPath();
+    dp.drawPoints(ctx, p1, p2);
+    ctx.stroke();
+            </script>
+        </figure>
+    </figures>
+
+    <div>
+        <p>Curves are defined by the start (p1) and end (p2) draw points.</p>
+
+        <p>Linear curves result when the end point has no control points attached to it.</p>
+
+        <p>Quadratic curves have either <code>cp1</code> or <code>cp2</code> attached to their end points.</p>
+
+        <p>Cubic curves have both <code>cp1</code> and <code>cp2</code> attached.</p>
+
+        <p>The control points defined on the starting point doesn't matter</p>
+    </div>
+</section>
+<script src="loader.js"></script>
+<script src="interaction.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+canvas {
+    border: 1px solid black;
+}
+
+section {
+    display:flex;
+}
+
+figure {
+    display: flex;
+    flex-direction: row;
+}
+
+figure .textarea {
+    margin-left:1em;
+}
