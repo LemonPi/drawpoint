@@ -2,7 +2,7 @@
  * Created by johnson on 11.05.17.
  */
 
-import {norm, add, makePoint, extractPoint, diff, getPerpendicularVector} from "./point";
+import {add, makePoint, extractPoint, diff, getPerpendicularVector} from "./point";
 import {roundToDec} from "./numeric";
 
 export function applyToCurve(p1, p2, {linear, quadratic, cubic}) {
@@ -19,11 +19,16 @@ export function applyToCurve(p1, p2, {linear, quadratic, cubic}) {
     }
 }
 
+/**
+ * Get a point at t (out of [0,1]) along the [p1, p2] curve
+ * @param t
+ * @param p1
+ * @param p2
+ * @returns {*}
+ */
 export function getPointOnCurve(t, p1, p2) {
     return applyToCurve(p1, p2, {
-        linear: (...cps) => {
-            return makePoint(getLinearValue.bind(null, t), ...cps);
-        },
+        linear: (...cps) => getPointOnLine(t, ...cps),
         quadratic: (...cps) => {
             return makePoint(getQuadraticValue.bind(null, t), ...cps);
         },
@@ -31,6 +36,18 @@ export function getPointOnCurve(t, p1, p2) {
             return makePoint(getCubicValue.bind(null, t), ...cps);
         },
     });
+}
+
+/**
+ * Shorthand for getting point on a line connecting p1 -> p2
+ * Useful for force treatment of p2 as a linear end point even if it has control points
+ * @param t
+ * @param p1
+ * @param p2
+ * @returns {*}
+ */
+export function getPointOnLine(t, p1, p2) {
+    return makePoint(getLinearValue.bind(null, t), p1, p2);
 }
 
 function getLinearValue(t, p1, p2) {
@@ -54,12 +71,12 @@ function getCubicValue(t, p1, cp1, cp2, p2) {
 function splitBezier(t, p1, cp1, cp2, p2) {
     // split a cubic cubic based on De Casteljau, t is between [0,1]
     // just a series of linear interpolations
-    const E = makePoint(getLinearValue.bind(null, t), p1, cp1);
-    const F = makePoint(getLinearValue.bind(null, t), cp1, cp2);
-    const G = makePoint(getLinearValue.bind(null, t), cp2, p2);
-    const H = makePoint(getLinearValue.bind(null, t), E, F);
-    const J = makePoint(getLinearValue.bind(null, t), F, G);
-    const K = makePoint(getLinearValue.bind(null, t), H, J);
+    const E = getPointOnLine(t, p1, cp1);
+    const F = getPointOnLine(t, cp1, cp2);
+    const G = getPointOnLine(t, cp2, p2);
+    const H = getPointOnLine(t, E, F);
+    const J = getPointOnLine(t, F, G);
+    const K = getPointOnLine(t, H, J);
     return {
         left: {
             p1,
@@ -78,9 +95,9 @@ function splitBezier(t, p1, cp1, cp2, p2) {
 
 function splitQuadratic(t, p1, cp, p2) {
     // split a quadratic cubic based on De Casteljau, t is between [0,1]
-    const D = makePoint(getLinearValue.bind(null, t), p1, cp);
-    const E = makePoint(getLinearValue.bind(null, t), cp, p2);
-    const F = makePoint(getLinearValue.bind(null, t), D, E);
+    const D = getPointOnLine(t, p1, cp);
+    const E = getPointOnLine(t, cp, p2);
+    const F = getPointOnLine(t, D, E);
 
     return {
         left: {
@@ -98,7 +115,7 @@ function splitQuadratic(t, p1, cp, p2) {
 
 function splitLinear(t, p1, p2) {
     // split a linear linear
-    const C = makePoint(getLinearValue.bind(null, t), p1, p2);
+    const C = getPointOnLine(t, p1, p2);
     return {
         left: {
             p1,
@@ -324,7 +341,7 @@ export function interpolateCurve(p1, p2, betweenPoint) {
  * @returns {{x: number, y: number}}
  */
 export function simpleQuadratic(p1, p2, t = 0.5, deflection = 0) {
-    const cp1 = getPointOnCurve(t, p1, extractPoint(p2));
+    const cp1 = getPointOnLine(t, p1, p2);
     return add(cp1, getPerpendicularVector(diff(p1, p2)), deflection);
 }
 
@@ -381,34 +398,26 @@ export function getCubicControlPoints(p1, p2) {
 
 /**
  * Transform start curve into end curve (results in cubic cubic) with the amount
- * of transformation determined by t [0,1]
- * @param startP1
- * @param startP2
- * @param endP1
- * @param endP2
+ * of transformation determined by t [0,1]. Limited to transforming the end point as the start and
+ * end curves must have the same starting point
  * @param t Amount to transform, [0,1] 0 is no transformation at all and is equal to the start curve;
  * 1 is full transformation and is equal to the end curve
+ * @param p1
+ * @param initP2
+ * @param endP2
  * @returns Replacement draw point for endP2
  */
-export function transformCurve(startP1, startP2, endP1, endP2, t) {
-    if (!startP2) {
+export function transformCurve(t, p1, initP2, endP2) {
+    if (!initP2) {
         return endP2;
     }
     if (!endP2) {
-        return startP2;
+        return initP2;
     }
-    const [startCp1, startCp2] = getCubicControlPoints(startP1, startP2);
-    const [endCp1, endCp2] = getCubicControlPoints(endP1, endP2);
-    return {
-        x: startP2.x * (1 - t) + endP2.x * t,
-        y: startP2.y * (1 - t) + endP2.y * t,
-        cp1: {
-            x: startCp1.x * (1 - t) + endCp1.x * t,
-            y: startCp1.y * (1 - t) + endCp1.y * t
-        },
-        cp2: {
-            x: startCp2.x * (1 - t) + endCp2.x * t,
-            y: startCp2.y * (1 - t) + endCp2.y * t
-        },
-    };
+    const [initCp1, initCp2] = getCubicControlPoints(p1, initP2);
+    const [endCp1, endCp2] = getCubicControlPoints(p1, endP2);
+    const newEnd = getPointOnLine(t, initP2, endP2);
+    newEnd.cp1 = getPointOnLine(t, initCp1, endCp1);
+    newEnd.cp2 = getPointOnLine(t, initCp2, endCp2);
+    return newEnd;
 }
