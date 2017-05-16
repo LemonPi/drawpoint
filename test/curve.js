@@ -412,5 +412,22 @@ describe("#getCubicControlPoints", function () {
 });
 
 describe("#transformCurve", function () {
-
+    const curves = getRandomCurves();
+    const otherCurves = getRandomCurves();
+    const ts = [-0.5, 0, 0.1, 0.5, 0.8, 1, 1.5];
+    curves.forEach((p2, degree)=>{
+        const pp2 = otherCurves[degree];
+        it("should return original curve when t = 0 for degree " + (degree + 1), function() {
+            const newP2 = dp.transformCurve(0, p1, p2, pp2);
+            ts.forEach((t) => {
+                c.assertDeepCloseTo(dp.getPointOnCurve(t,p1,newP2), dp.getPointOnCurve(t,p1,p2));
+            });
+        });
+        it("should return end curve when t = 1 for degree " + (degree + 1), function() {
+            const newP2 = dp.transformCurve(1, p1, p2, pp2);
+            ts.forEach((t) => {
+                c.assertDeepCloseTo(dp.getPointOnCurve(t,p1,newP2), dp.getPointOnCurve(t,p1,pp2));
+            });
+        });
+    });
 });

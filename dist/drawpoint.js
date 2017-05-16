@@ -88,12 +88,12 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.endPoint = exports.breakPoint = exports.origin = undefined;
 exports.point = point;
-exports.averagePoint = averagePoint;
+exports.makePoint = makePoint;
+exports.add = add;
 exports.diff = diff;
 exports.norm = norm;
 exports.angle = angle;
 exports.scale = scale;
-exports.addVector = addVector;
 exports.getUnitVector = getUnitVector;
 exports.getPerpendicularVector = getPerpendicularVector;
 exports.extractPoint = extractPoint;
@@ -105,8 +105,22 @@ exports.rotatePoints = rotatePoints;
 
 var _util = __webpack_require__(3);
 
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
 function point(x, y) {
     return { x: x, y: y };
+}
+
+function makePoint(func) {
+    for (var _len = arguments.length, cps = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+        cps[_key - 1] = arguments[_key];
+    }
+
+    return point(func.apply(undefined, _toConsumableArray(cps.map(function (cp) {
+        return cp.x;
+    }))), func.apply(undefined, _toConsumableArray(cps.map(function (cp) {
+        return cp.y;
+    }))));
 }
 
 var origin = exports.origin = Object.freeze(point(0, 0));
@@ -132,10 +146,19 @@ var endPoint = exports.endPoint = Object.freeze({
     end: true
 });
 
-function averagePoint(p1, p2) {
-    var bias = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0.5;
+/**
+ * Treat points as vectors and add them, optionally after scaling p2
+ * @param p1
+ * @param p2
+ * @param scaleBy
+ * @returns {{x: *, y: *}}
+ */
+function add(p1, p2) {
+    var scaleBy = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
 
-    return point(p1.x * (1 - bias) + p2.x * bias, p1.y * (1 - bias) + p2.y * bias);
+    return makePoint(function (pp1, pp2) {
+        return pp1 + pp2 * scaleBy;
+    }, p1, p2);
 }
 
 /**
@@ -145,7 +168,9 @@ function averagePoint(p1, p2) {
  * @returns {{x: number, y: number}}
  */
 function diff(p1, p2) {
-    return point(p2.x - p1.x, p2.y - p1.y);
+    return makePoint(function (pp1, pp2) {
+        return pp2 - pp1;
+    }, p1, p2);
 }
 
 /**
@@ -177,20 +202,7 @@ function angle(vec) {
 function scale(pt, scaleBy) {
     var referencePt = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : origin;
 
-    return addVector(referencePt, diff(referencePt, pt), scaleBy);
-}
-
-/**
- * Treat points as vectors and add them, optionally after scaling p2
- * @param p1
- * @param p2
- * @param scaleBy
- * @returns {{x: *, y: *}}
- */
-function addVector(p1, p2) {
-    var scaleBy = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1;
-
-    return point(p1.x + p2.x * scaleBy, p1.y + p2.y * scaleBy);
+    return add(referencePt, diff(referencePt, pt), scaleBy);
 }
 
 /**
@@ -200,7 +212,9 @@ function addVector(p1, p2) {
  */
 function getUnitVector(vec) {
     var magnitude = norm(vec);
-    return point(vec.x / magnitude, vec.y / magnitude);
+    return makePoint(function (v) {
+        return v / magnitude;
+    }, vec);
 }
 
 /**
@@ -233,7 +247,7 @@ function reflect(pt) {
     var c = void 0,
         cm = void 0;
 
-    // vertical line
+    // vertical linear
     if (m === Infinity) {
         c = 0;
         cm = 0;
@@ -259,16 +273,12 @@ function adjust(pt, dx, dy) {
         return pt;
     }
     // return a point with x and y adjusted by dx and dy respectively
-    var movedPoint = (0, _util.clone)(pt);
-    movedPoint.x += dx;
-    movedPoint.y += dy;
-    if (movedPoint.cp1) {
-        movedPoint.cp1.x += dx;
-        movedPoint.cp1.y += dy;
+    var movedPoint = point(pt.x + dx, pt.y + dy);
+    if (pt.cp1) {
+        movedPoint.cp1 = point(pt.cp1.x + dx, pt.cp1.y + dy);
     }
-    if (movedPoint.cp2) {
-        movedPoint.cp2.x += dx;
-        movedPoint.cp2.y += dy;
+    if (pt.cp2) {
+        movedPoint.cp2 = point(pt.cp2.x + dx, pt.cp2.y + dy);
     }
     return movedPoint;
 }
@@ -283,8 +293,8 @@ function adjust(pt, dx, dy) {
 function adjustPoints(dx, dy) {
     var shiftedPoints = [];
 
-    for (var _len = arguments.length, points = Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
-        points[_key - 2] = arguments[_key];
+    for (var _len2 = arguments.length, points = Array(_len2 > 2 ? _len2 - 2 : 0), _key2 = 2; _key2 < _len2; _key2++) {
+        points[_key2 - 2] = arguments[_key2];
     }
 
     points.forEach(function (pt) {
@@ -300,8 +310,8 @@ function adjustPoints(dx, dy) {
  * @param points Points to scale relative to center
  */
 function scalePoints(center, scaleBy) {
-    for (var _len2 = arguments.length, points = Array(_len2 > 2 ? _len2 - 2 : 0), _key2 = 2; _key2 < _len2; _key2++) {
-        points[_key2 - 2] = arguments[_key2];
+    for (var _len3 = arguments.length, points = Array(_len3 > 2 ? _len3 - 2 : 0), _key3 = 2; _key3 < _len3; _key3++) {
+        points[_key3 - 2] = arguments[_key3];
     }
 
     points.forEach(function (pt) {
@@ -334,8 +344,8 @@ function rotatePoints(pivot, rad) {
     var cos = Math.cos(rad),
         sin = Math.sin(rad);
 
-    for (var _len3 = arguments.length, points = Array(_len3 > 2 ? _len3 - 2 : 0), _key3 = 2; _key3 < _len3; _key3++) {
-        points[_key3 - 2] = arguments[_key3];
+    for (var _len4 = arguments.length, points = Array(_len4 > 2 ? _len4 - 2 : 0), _key4 = 2; _key4 < _len4; _key4++) {
+        points[_key4 - 2] = arguments[_key4];
     }
 
     points.forEach(function (pt) {
@@ -378,13 +388,15 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }(); /**
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          * Created by johnson on 11.05.17.
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          */
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
+exports.applyToCurve = applyToCurve;
+exports.getPointOnCurve = getPointOnCurve;
+exports.getPointOnLine = getPointOnLine;
 exports.splitCurve = splitCurve;
 exports.interpolateCurve = interpolateCurve;
 exports.simpleQuadratic = simpleQuadratic;
+exports.elevateDegree = elevateDegree;
 exports.getCubicControlPoints = getCubicControlPoints;
 exports.transformCurve = transformCurve;
 
@@ -392,39 +404,102 @@ var _point = __webpack_require__(0);
 
 var _numeric = __webpack_require__(2);
 
-function splitBezier(points, t) {
-    // split a cubic bezier based on De Casteljau, t is between [0,1]
-    var A = points.p1,
-        B = points.cp1,
-        C = points.cp2,
-        D = points.p2;
-    var E = {
-        x: A.x * (1 - t) + B.x * t,
-        y: A.y * (1 - t) + B.y * t
-    };
-    var F = {
-        x: B.x * (1 - t) + C.x * t,
-        y: B.y * (1 - t) + C.y * t
-    };
-    var G = {
-        x: C.x * (1 - t) + D.x * t,
-        y: C.y * (1 - t) + D.y * t
-    };
-    var H = {
-        x: E.x * (1 - t) + F.x * t,
-        y: E.y * (1 - t) + F.y * t
-    };
-    var J = {
-        x: F.x * (1 - t) + G.x * t,
-        y: F.y * (1 - t) + G.y * t
-    };
-    var K = {
-        x: H.x * (1 - t) + J.x * t,
-        y: H.y * (1 - t) + J.y * t
-    };
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } } /**
+                                                                                                                                                                                                     * Created by johnson on 11.05.17.
+                                                                                                                                                                                                     */
+
+function applyToCurve(p1, p2, _ref) {
+    var linear = _ref.linear,
+        quadratic = _ref.quadratic,
+        cubic = _ref.cubic;
+
+    var ep1 = (0, _point.extractPoint)(p1);
+    var ep2 = (0, _point.extractPoint)(p2);
+    if (p2.cp1 && p2.cp2) {
+        return cubic(ep1, p2.cp1, p2.cp2, ep2);
+    }
+    var cp = p2.cp1 || p2.cp2;
+    if (cp) {
+        return quadratic(ep1, cp, ep2);
+    } else {
+        return linear(ep1, ep2);
+    }
+}
+
+/**
+ * Get a point at t (out of [0,1]) along the [p1, p2] curve
+ * @param t
+ * @param p1
+ * @param p2
+ * @returns {*}
+ */
+function getPointOnCurve(t, p1, p2) {
+    return applyToCurve(p1, p2, {
+        linear: function linear() {
+            for (var _len = arguments.length, cps = Array(_len), _key = 0; _key < _len; _key++) {
+                cps[_key] = arguments[_key];
+            }
+
+            return getPointOnLine.apply(undefined, [t].concat(cps));
+        },
+        quadratic: function quadratic() {
+            for (var _len2 = arguments.length, cps = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+                cps[_key2] = arguments[_key2];
+            }
+
+            return _point.makePoint.apply(undefined, [getQuadraticValue.bind(null, t)].concat(cps));
+        },
+        cubic: function cubic() {
+            for (var _len3 = arguments.length, cps = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+                cps[_key3] = arguments[_key3];
+            }
+
+            return _point.makePoint.apply(undefined, [getCubicValue.bind(null, t)].concat(cps));
+        }
+    });
+}
+
+/**
+ * Shorthand for getting point on a line connecting p1 -> p2
+ * Useful for force treatment of p2 as a linear end point even if it has control points
+ * @param t
+ * @param p1
+ * @param p2
+ * @returns {*}
+ */
+function getPointOnLine(t, p1, p2) {
+    return (0, _point.makePoint)(getLinearValue.bind(null, t), p1, p2);
+}
+
+function getLinearValue(t, p1, p2) {
+    // (1 - t) * p1 + t * p2
+    return t * (p2 - p1) + p1;
+}
+
+function getQuadraticValue(t, p1, cp, p2) {
+    // (1 - t)^2 * p1 + 2(1 - t)t * cp + t^2 * p2
+    // gather coefficients of t^2, t, and 1
+    return (p1 + p2 - 2 * cp) * t * t + 2 * (cp - p1) * t + p1;
+}
+
+function getCubicValue(t, p1, cp1, cp2, p2) {
+    // (1 - t)^3 * p1 + 3(1 - t)^2 * t * cp1 + 3(1 - t)t^2 * cp2 + t^3 * p2
+    // leave in unexpanded form
+    return p1 * (1 - t) * (1 - t) * (1 - t) + 3 * cp1 * (1 - t) * (1 - t) * t + 3 * cp2 * (1 - t) * t * t + p2 * t * t * t;
+}
+
+function splitBezier(t, p1, cp1, cp2, p2) {
+    // split a cubic cubic based on De Casteljau, t is between [0,1]
+    // just a series of linear interpolations
+    var E = getPointOnLine(t, p1, cp1);
+    var F = getPointOnLine(t, cp1, cp2);
+    var G = getPointOnLine(t, cp2, p2);
+    var H = getPointOnLine(t, E, F);
+    var J = getPointOnLine(t, F, G);
+    var K = getPointOnLine(t, H, J);
     return {
         left: {
-            p1: A,
+            p1: p1,
             cp1: E,
             cp2: H,
             p2: K
@@ -433,59 +508,42 @@ function splitBezier(points, t) {
             p1: K,
             cp1: J,
             cp2: G,
-            p2: D
+            p2: p2
         }
     };
 }
 
-function splitQuadratic(points, t) {
-    // split a quadratic bezier based on De Casteljau, t is between [0,1]
-    var A = points.p1,
-        B = points.cp1,
-        C = points.p2;
-    var D = {
-        x: A.x * (1 - t) + B.x * t,
-        y: A.y * (1 - t) + B.y * t
-    };
-    var E = {
-        x: B.x * (1 - t) + C.x * t,
-        y: B.y * (1 - t) + C.y * t
-    };
-    var F = {
-        x: D.x * (1 - t) + E.x * t,
-        y: D.y * (1 - t) + E.y * t
-    };
+function splitQuadratic(t, p1, cp, p2) {
+    // split a quadratic cubic based on De Casteljau, t is between [0,1]
+    var D = getPointOnLine(t, p1, cp);
+    var E = getPointOnLine(t, cp, p2);
+    var F = getPointOnLine(t, D, E);
 
     return {
         left: {
-            p1: A,
+            p1: p1,
             cp1: D,
             p2: F
         },
         right: {
             p1: F,
             cp1: E,
-            p2: C
+            p2: p2
         }
     };
 }
 
-function splitLinear(points, t) {
-    // split a linear line
-    var A = points.p1,
-        B = points.p2;
-    var C = {
-        x: A.x * (1 - t) + B.x * t,
-        y: A.y * (1 - t) + B.y * t
-    };
+function splitLinear(t, p1, p2) {
+    // split a linear linear
+    var C = getPointOnLine(t, p1, p2);
     return {
         left: {
-            p1: A,
+            p1: p1,
             p2: C
         },
         right: {
             p1: C,
-            p2: B
+            p2: p2
         }
     };
 }
@@ -493,50 +551,32 @@ function splitLinear(points, t) {
 /**
  * Split the curve between two drawpoints and return all the resulting drawpoints
  * @memberof module:da
- * @param {object} p1 Starting drawpoint
- * @param {object} p2 Ending drawpoint and also where we look at the control points
  * @param {number} t "time" along the curve to split at. Since all curves are parameterized
  * curves, t is their parameter. Can be thought of as traversing along the curve, where 0 is
  * at the start point and 1 is at the end point. This value can go beyond [0,1].
+ * @param {object} p1 Starting drawpoint
+ * @param {object} p2 Ending drawpoint and also where we look at the control points
  * @returns {{left, right}} Object having a left and right property, each with their own
  * p1 (start point), p2 (end point), and optionally cp1 and cp2 depending on what kind of
  * curve was split. Note that sp.left.p2 === sp.right.p1 always in value.
  */
-function splitCurve(p1, p2, t) {
-    // split either a quadratic or bezier curve depending on number of control points on
+function splitCurve(t, p1, p2) {
+    // split either a quadratic or cubic curve depending on number of control points on
     // the end point
-    if (p2.cp1 && p2.cp2) {
-        return splitBezier({
-            p1: (0, _point.extractPoint)(p1),
-            p2: (0, _point.extractPoint)(p2),
-            cp1: p2.cp1,
-            cp2: p2.cp2
-        }, t);
-    }
-    var cp = p2.cp1 || p2.cp2;
-    if (cp) {
-        return splitQuadratic({
-            p1: (0, _point.extractPoint)(p1),
-            p2: (0, _point.extractPoint)(p2),
-            cp1: cp
-        }, t);
-    } else {
-        return splitLinear({
-            p1: (0, _point.extractPoint)(p1),
-            p2: p2
-        }, t);
-    }
+    return applyToCurve(p1, p2, {
+        linear: splitLinear.bind(null, t),
+        quadratic: splitQuadratic.bind(null, t),
+        cubic: splitBezier.bind(null, t)
+    });
 }
 
 function interpolateLinear(p1, p2, p) {
-    // looking for y given x
-    // vertical line, can't calculate
-    if (p2 == p1) {
-        console.log("Linear interpolation vertical line");
-        return p;
+    // infinite number of options, can't calculate
+    if (p2 === p1) {
+        return [];
     }
-    var t = (p - p1) / (p2 - p1);
-    return [t * (p2 - p1) + p1, t];
+    // t
+    return [(p - p1) / (p2 - p1)];
 }
 
 function solveQuadraticEquation(a, b, c) {
@@ -550,31 +590,13 @@ function solveQuadraticEquation(a, b, c) {
     }
 }
 
-function interpolateQuadratic(p1, p2, cp1, p) {
+function interpolateQuadratic(p1, cp1, p2, p) {
     var a = p1 - 2 * cp1 + p2;
     var b = 2 * (cp1 - p1);
     var c = p1 - p;
 
     // 2 possible values for t
-    var ts = solveQuadraticEquation(a, b, c);
-    if (ts.length === 0) {
-        console.log("Quadratic interpolation out of bounds");
-        return null;
-    }
-
-    var t = ts[0];
-    if (ts.length === 2) {
-        if (t < 0 || t > 1) {
-            t = ts[1];
-        }
-    }
-
-    // t outside of 0 or 1 means something's wrong
-    if (t < 0 || t > 1) {
-        console.log("Quadratic interpolation out of bounds");
-    }
-
-    return [(p1 - 2 * cp1 + p1) * t * t + 2 * (cp1 - p1) * t + p1, t];
+    return solveQuadraticEquation(a, b, c);
 }
 
 function cubeRoot(v) {
@@ -668,101 +690,82 @@ function solveCubicEquation(a, b, c) {
     return [x1, x2, x3];
 }
 
-function interpolateCubic(p0, p1, p2, p3, p) {
+function interpolateCubic(p1, cp1, cp2, p2, p) {
     // and rewrite from [a(1-t)^3 + 3bt(1-t)^2 + 3c(1-t)t^2 + dt^3] form
-    p0 -= p;
     p1 -= p;
+    cp1 -= p;
+    cp2 -= p;
     p2 -= p;
-    p3 -= p;
 
     // to [t^3 + at^2 + bt + c] form:
-    var d = -p0 + 3 * p1 - 3 * p2 + p3;
-    var a = (3 * p0 - 6 * p1 + 3 * p2) / d;
-    var b = (-3 * p0 + 3 * p1) / d;
-    var c = p0 / d;
+    var d = -p1 + 3 * cp1 - 3 * cp2 + p2;
+    var a = (3 * p1 - 6 * cp1 + 3 * cp2) / d;
+    var b = (-3 * p1 + 3 * cp1) / d;
+    var c = p1 / d;
 
-    var roots = solveCubicEquation(a, b, c);
-
-    var ts = [];
-    var root = void 0;
-    for (var i = 0; i < roots.length; i++) {
-        root = (0, _numeric.roundToDec)(roots[i], 15);
-        if (root >= 0 && root <= 1) {
-            ts.push(root);
-        }
-    }
-
-    return ts;
+    return solveCubicEquation(a, b, c).map(function (t) {
+        return (0, _numeric.roundToDec)(t, 4);
+    });
 }
 
-function getCubicValue(t, a, b, c, d) {
-    return a * (1 - t) * (1 - t) * (1 - t) + 3 * b * (1 - t) * (1 - t) * t + 3 * c * (1 - t) * t * t + d * t * t * t;
-}
-
+/**
+ * Get points along the curve from t = [0,1] that share the fixed dimension as betweenPoint.
+ * For example, if betweenPoint = {x:10, y:null}, then we are looking for all points with
+ * x = 10.
+ * @param p1
+ * @param p2
+ * @param betweenPoint Query that has either x or y set to null which is to be determined
+ * @returns {Array} List of draw points that have a "t" property which is how far they are along the curve
+ */
 function interpolateCurve(p1, p2, betweenPoint) {
-    var v = void 0,
-        t = void 0;
-    if (p2.cp2) {
-        if (betweenPoint.x === null) {
-            var _interpolateCubic = interpolateCubic(p1.y, p2.cp1.y, p2.cp2.y, p2.y, betweenPoint.y);
-
-            var _interpolateCubic2 = _slicedToArray(_interpolateCubic, 1);
-
-            t = _interpolateCubic2[0];
-
-            betweenPoint.x = getCubicValue(t, p1.x, p2.cp1.x, p2.cp2.x, p2.x);
-        } else if (betweenPoint.y === null) {
-            var _interpolateCubic3 = interpolateCubic(p1.x, p2.cp1.x, p2.cp2.x, p2.x, betweenPoint.x);
-
-            var _interpolateCubic4 = _slicedToArray(_interpolateCubic3, 1);
-
-            t = _interpolateCubic4[0];
-
-            betweenPoint.y = getCubicValue(t, p1.y, p2.cp1.y, p2.cp2.y, p2.y);
-        }
-    } else if (p2.cp1) {
-        if (betweenPoint.x === null) {
-            var _interpolateQuadratic = interpolateQuadratic(p1.y, p2.y, p2.cp1.y, betweenPoint.y);
-
-            var _interpolateQuadratic2 = _slicedToArray(_interpolateQuadratic, 2);
-
-            v = _interpolateQuadratic2[0];
-            t = _interpolateQuadratic2[1];
-
-            betweenPoint.x = v;
-        } else if (betweenPoint.y === null) {
-            var _interpolateQuadratic3 = interpolateQuadratic(p1.x, p2.x, p2.cp1.x, betweenPoint.x);
-
-            var _interpolateQuadratic4 = _slicedToArray(_interpolateQuadratic3, 2);
-
-            v = _interpolateQuadratic4[0];
-            t = _interpolateQuadratic4[1];
-
-            betweenPoint.y = v;
-        }
+    var knownDim = void 0;
+    if (betweenPoint.x === null) {
+        knownDim = "y";
+    } else if (betweenPoint.y === null) {
+        knownDim = "x";
     } else {
-        if (betweenPoint.x === null) {
-            var _interpolateLinear = interpolateLinear(p1.y, p2.y, betweenPoint.y);
-
-            var _interpolateLinear2 = _slicedToArray(_interpolateLinear, 2);
-
-            v = _interpolateLinear2[0];
-            t = _interpolateLinear2[1];
-
-            betweenPoint.x = v;
-        } else if (betweenPoint.y === null) {
-            var _interpolateLinear3 = interpolateLinear(p1.x, p2.x, betweenPoint.x);
-
-            var _interpolateLinear4 = _slicedToArray(_interpolateLinear3, 2);
-
-            v = _interpolateLinear4[0];
-            t = _interpolateLinear4[1];
-
-            betweenPoint.y = v;
-        }
+        return [];
     }
-    betweenPoint.t = t;
-    return betweenPoint;
+
+    var ts = applyToCurve(p1, p2, {
+        linear: function linear() {
+            for (var _len4 = arguments.length, cps = Array(_len4), _key4 = 0; _key4 < _len4; _key4++) {
+                cps[_key4] = arguments[_key4];
+            }
+
+            return interpolateLinear.apply(undefined, _toConsumableArray(cps.map(function (cp) {
+                return cp[knownDim];
+            })).concat([betweenPoint[knownDim]]));
+        },
+        quadratic: function quadratic() {
+            for (var _len5 = arguments.length, cps = Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
+                cps[_key5] = arguments[_key5];
+            }
+
+            return interpolateQuadratic.apply(undefined, _toConsumableArray(cps.map(function (cp) {
+                return cp[knownDim];
+            })).concat([betweenPoint[knownDim]]));
+        },
+        cubic: function cubic() {
+            for (var _len6 = arguments.length, cps = Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
+                cps[_key6] = arguments[_key6];
+            }
+
+            return interpolateCubic.apply(undefined, _toConsumableArray(cps.map(function (cp) {
+                return cp[knownDim];
+            })).concat([betweenPoint[knownDim]]));
+        }
+    }).filter(function (t) {
+        // solving cubic equations is not very numerically stable...
+        t = (0, _numeric.roundToDec)(t, 3);
+        return t >= 0 && t <= 1;
+    });
+
+    return ts.map(function (t) {
+        var p = getPointOnCurve(t, p1, p2);
+        p.t = t;
+        return p;
+    });
 }
 
 /**
@@ -770,98 +773,109 @@ function interpolateCurve(p1, p2, betweenPoint) {
  * a simple deflection parameter
  * @param p1
  * @param p2
- * @param t How far along the line between p1 and p2 the control point should start
- * @param deflection Which direction and how far perpendicular to the p1-p2 line
- * the control point should be
+ * @param t How far along the linear between p1 and p2 the control point should start
+ * @param deflection Which direction and how far perpendicular to the p1-p2 linear
+ * the control point should be (the norm of the perpendicular vector)
  * @returns {{x: number, y: number}}
  */
 function simpleQuadratic(p1, p2) {
     var t = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0.5;
     var deflection = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
 
-    var cp1 = {
-        x: p1.x * (1 - t) + p2.x * t,
-        y: p1.y * (1 - t) + p2.y * t
-    };
-    var unitPerpendicular = (0, _point.getPerpendicularVector)((0, _point.diff)(p1, p2));
-    cp1.x += deflection * unitPerpendicular.x;
-    cp1.y += deflection * unitPerpendicular.y;
-    return cp1;
+    var cp1 = getPointOnLine(t, p1, p2);
+    return (0, _point.add)(cp1, (0, _point.getPerpendicularVector)((0, _point.diff)(p1, p2)), deflection);
 }
 
 /**
- * Get the cubic bezier control point representation of the curve from start to end.
+ * Increase the degree of a cubic curve (e.g. quadratic to cubic) without changing its shape
+ * @param p1 Starting point of the curve
+ * @param p2 Ending point of the curve and holds the other control points
+ */
+function elevateDegree(p1, p2) {
+    var cps = [p1];
+    for (var cp in p2) {
+        if (cp.startsWith("cp") && p2.hasOwnProperty(cp)) {
+            cps.push(p2[cp]);
+        }
+    }
+    cps.push((0, _point.extractPoint)(p2));
+
+    var newEndPoint = (0, _point.extractPoint)(p2);
+    // see https://www.cs.mtu.edu/~shene/COURSES/cs3621/NOTES/spline/Bezier/bezier-elev.html
+
+    var _loop = function _loop(i, newDegree) {
+        var coefficient = i / newDegree;
+
+        newEndPoint["cp" + i] = (0, _point.makePoint)(function (cpsPrev, cps) {
+            return coefficient * cpsPrev + (1 - coefficient) * cps;
+        }, cps[i - 1], cps[i]);
+    };
+
+    for (var i = 1, newDegree = cps.length; i < newDegree; ++i) {
+        _loop(i, newDegree);
+    }
+    return newEndPoint;
+}
+
+/**
+ * Get the cubic cubic control point representation of the curve from start to end.
  * If end already has 2 control points return them; if end has only 1 control point (quadratic)
  * then return 2 control points that would lead to an equivalent curve; if end has no control
  * point (linear) then return 2 control points located identically at the midpoint between
  * start and end.
- * @param start
- * @param end
+ * @param p1
+ * @param p2
  * @returns {[*,*]} cp1 and cp2 of end point
  */
-function getCubicControlPoints(start, end) {
-    // already a cubic, just return directly
-    if (end.cp1 && end.cp2) {
-        return [end.cp1, end.cp2];
-    }
-    // quadratic
-    var cp = end.cp1 || end.cp2;
-    if (cp) {
-        var cp1 = {
-            x: start.x + 2 / 3 * (cp.x - start.x),
-            y: start.y + 2 / 3 * (cp.y - start.y)
-        };
-        var cp2 = {
-            x: end.x + 2 / 3 * (cp.x - end.x),
-            y: end.y + 2 / 3 * (cp.y - end.y)
-        };
-        return [cp1, cp2];
-    }
-    // linear (infinite possibilities, just choose both of them to be in the middle)
-    return [(0, _point.averagePoint)(start, end), (0, _point.averagePoint)(start, end)];
+function getCubicControlPoints(p1, p2) {
+    return applyToCurve(p1, p2, {
+        linear: function linear() {
+            var newEnd = elevateDegree(p1, elevateDegree(p1, p2));
+            return [newEnd.cp1, newEnd.cp2];
+        },
+        quadratic: function quadratic() {
+            var newEnd = elevateDegree(p1, p2);
+            return [newEnd.cp1, newEnd.cp2];
+        },
+        cubic: function cubic() {
+            return [p2.cp1, p2.cp2];
+        }
+    });
 }
 
 /**
- * Transform start curve into end curve (results in cubic bezier) with the amount
- * of transformation determined by t [0,1]
- * @param startP1
- * @param startP2
- * @param endP1
- * @param endP2
+ * Transform start curve into end curve (results in cubic cubic) with the amount
+ * of transformation determined by t [0,1]. Limited to transforming the end point as the start and
+ * end curves must have the same starting point
  * @param t Amount to transform, [0,1] 0 is no transformation at all and is equal to the start curve;
  * 1 is full transformation and is equal to the end curve
+ * @param p1
+ * @param initP2
+ * @param endP2
  * @returns Replacement draw point for endP2
  */
-function transformCurve(startP1, startP2, endP1, endP2, t) {
-    if (!startP2) {
+function transformCurve(t, p1, initP2, endP2) {
+    if (!initP2) {
         return endP2;
     }
     if (!endP2) {
-        return startP2;
+        return initP2;
     }
 
-    var _getCubicControlPoint = getCubicControlPoints(startP1, startP2),
+    var _getCubicControlPoint = getCubicControlPoints(p1, initP2),
         _getCubicControlPoint2 = _slicedToArray(_getCubicControlPoint, 2),
-        startCp1 = _getCubicControlPoint2[0],
-        startCp2 = _getCubicControlPoint2[1];
+        initCp1 = _getCubicControlPoint2[0],
+        initCp2 = _getCubicControlPoint2[1];
 
-    var _getCubicControlPoint3 = getCubicControlPoints(endP1, endP2),
+    var _getCubicControlPoint3 = getCubicControlPoints(p1, endP2),
         _getCubicControlPoint4 = _slicedToArray(_getCubicControlPoint3, 2),
         endCp1 = _getCubicControlPoint4[0],
         endCp2 = _getCubicControlPoint4[1];
 
-    return {
-        x: startP2.x * (1 - t) + endP2.x * t,
-        y: startP2.y * (1 - t) + endP2.y * t,
-        cp1: {
-            x: startCp1.x * (1 - t) + endCp1.x * t,
-            y: startCp1.y * (1 - t) + endCp1.y * t
-        },
-        cp2: {
-            x: startCp2.x * (1 - t) + endCp2.x * t,
-            y: startCp2.y * (1 - t) + endCp2.y * t
-        }
-    };
+    var newEnd = getPointOnLine(t, initP2, endP2);
+    newEnd.cp1 = getPointOnLine(t, initCp1, endCp1);
+    newEnd.cp2 = getPointOnLine(t, initCp2, endCp2);
+    return newEnd;
 }
 
 /***/ }),
@@ -1369,7 +1383,7 @@ function drawSpecificCurl(left, center, right) {
  * Debug the curve going into a drawpoint. Use by wrapping a drawpoint with it when returning
  * to guiMenuItem.
  * @param {object} pt
- * @param {object} traceOptions Options for how to show the points
+ * @param {object} options Options for how to show the points
  * @returns {*}
  */
 function tracePoint(pt, options) {
@@ -1403,9 +1417,9 @@ function reverseDrawPoint(start, end) {
 }
 
 /**
- * For a bezier curve point, get a control point on the other side of the point so that the
+ * For a cubic curve point, get a control point on the other side of the point so that the
  * curve is smooth.
- * @param {point} pt End point of a bezier curve (must have 2nd control point)
+ * @param {point} pt End point of a cubic curve (must have 2nd control point)
  * @param {number} scaleBy How much back to extend the continuing control point.
  * A value of 1 produces a symmetric curve.
  * @returns {{x, y}|{x: number, y: number}|*} Continuing control point
@@ -1503,3 +1517,4 @@ Object.keys(_draw).forEach(function (key) {
 /***/ })
 /******/ ]);
 });
+//# sourceMappingURL=drawpoint.js.map
