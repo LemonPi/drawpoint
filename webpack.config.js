@@ -5,31 +5,33 @@ const path = require('path');
 const webpack = require('webpack');
 
 module.exports = {
-    context: path.resolve(__dirname, './src'),
-    entry: {
+    context  : path.resolve(__dirname, './src'),
+    entry    : {
         drawpoint: "./index.js",
     },
-    output: {
-        filename: '[name].js',
-        path: path.resolve(__dirname, 'dist'),
-        publicPath: '/',
-        library: 'drawpoint',
+    output   : {
+        filename     : '[name].js',
+        path         : path.resolve(__dirname, 'dist'),
+        publicPath   : '/',
+        library      : 'drawpoint',
         libraryTarget: 'umd',
     },
     devServer: {
         publicPath: "./dist",
-        public: "localhost:8080/demo",
+        public    : "localhost:8080/demo",
     },
-    devtool: "cheap-module-source-map",
-    module: {
+    devtool  : "cheap-module-source-map",
+    module   : {
         rules: [
             {
-                test: /\.js$/,
-                exclude: [/node_modules/],
-                use: [{
-                    loader: 'babel-loader',
-                    options: {presets: ['es2015']},
-                }],
+                test   : /\.js$/,
+                include: [/src/],
+                use    : [
+                    {
+                        loader : 'babel-loader',
+                        options: {presets: ['es2015']},
+                    }
+                ],
             },
         ]
     },

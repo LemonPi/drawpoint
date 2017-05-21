@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "webpack && mocha test/test.js",
-    "demo": "webpack-dev-server --open",
-    "build": "webpack && uglifyjs ./dist/drawpoint.js -c -m -o ./dist/drawpoint.min.js"
+    "build": "webpack -p"
   },
   "keywords": [
     "canvas",
@@ -23,7 +22,6 @@
     "deep-close-to": "^1.0.1",
     "mocha": "^3.3.0",
     "seedrandom": "^2.4.2",
-    "uglify-js": "^3.0.3",
     "webpack": "^2.5.1",
     "webpack-dev-server": "^2.4.5"
   },

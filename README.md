@@ -16,16 +16,16 @@ npm run build
 npm install
 npm test [optional seed]
 ```
+The test outputs the seed it's using at the top, which you can
+pass back into `npm test [seed]` to replicate behaviour.
 
 ### demo
-```bash
-npm install
-npm demo
-```
+The demo's now a separate project.
+Instructions to come.
 
 ### include (browser)
 
-Include `dist/drawpoint.js` in a script tag and use `drawpoint` as the namespace containing all the functions.
+Include `dist/drawpoint.js` in a script tag and use `drawpoint` as the global namespace containing all the functions.
 
 ```html
 <html>
