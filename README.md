@@ -51,3 +51,8 @@ code's passed through `browserify` or `webpack`, for example.
 ```javascript
 const dp = require('drawpoint');
 ```
+
+### include (ES2015 module)
+```javascript
+import * as dp from 'drawpoint';
+```
