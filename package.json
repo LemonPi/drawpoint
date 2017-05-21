@@ -2,7 +2,7 @@
   "name": "drawpoint",
   "version": "1.0.0",
   "description": "Draw on HTML canvas using points and operations on points",
-  "main": "index.js",
+  "main": "dist/drawpoint.js",
   "scripts": {
     "test": "webpack && mocha test/test.js",
     "build": "webpack -p"
