@@ -1,11 +1,19 @@
 "use strict";
 
-import {clone} from "./util";
-
 export function point(x, y) {
-    return {x, y};
+    return {
+        x,
+        y
+    };
 }
 
+/**
+ * Make a new point where each dimension is the result of applying a function to
+ * the corresponding dimension of a list of control points.
+ * @param func
+ * @param cps
+ * @returns {{x, y}|*}
+ */
 export function makePoint(func, ...cps) {
     return point(
         func(...cps.map(cp => cp.x)),
@@ -89,7 +97,6 @@ export function angle(vec) {
 export function scale(pt, scaleBy, referencePt = origin) {
     return add(referencePt, diff(referencePt, pt), scaleBy);
 }
-
 
 
 /**
