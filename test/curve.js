@@ -40,7 +40,7 @@ describe("#applyToCurve", function () {
     it("should detect quadratic curves", function () {
         let ok = false;
         dp.applyToCurve(p1, pQuadratic, {
-            linear: () => {
+            linear   : () => {
                 assert.fail(0, 0, "quadratic treated as linear");
             },
             quadratic: (pp1, cp, p2) => {
@@ -49,7 +49,7 @@ describe("#applyToCurve", function () {
                 assert.deepStrictEqual(cp, pQuadratic.cp1);
                 ok = true;
             },
-            cubic: () => {
+            cubic    : () => {
                 assert.fail(0, 0, "quadratic treated as cubic");
             },
         });
@@ -140,37 +140,30 @@ describe("#elevateDegree", function () {
 
 describe("#splitCurve", function () {
     const curves = getRandomCurves();
-    it("should always start and end at original points (left.p1 == p1 && right.p2 == p2)", function () {
-        curves.forEach((p2) => {
-            // t can be anything, not necessarily confined to [0,1]
-            // but just that when it's outside [0,1] it won't be on the curve
-            const sp = dp.splitCurve(c.rand(-10, 10), p1, p2);
-            assert.deepStrictEqual(sp.left.p1, p1);
-            assert.deepStrictEqual(sp.right.p2, dp.extractPoint(p2));
+    it("should always start and end at original points (left.p1 == p1 && right.p2 == p2)",
+        function () {
+            curves.forEach((p2) => {
+                // t can be anything, not necessarily confined to [0,1]
+                // but just that when it's outside [0,1] it won't be on the curve
+                const sp = dp.splitCurve(c.rand(-10, 10), p1, p2);
+                assert.deepStrictEqual(sp.left.p1, p1);
+                assert.deepStrictEqual(dp.extractPoint(sp.right.p2), dp.extractPoint(p2));
+            });
         });
-    });
     it("should always share the splitting point (left.p2 = right.p1)", function () {
         curves.forEach((p2) => {
             // t can be anything, not necessarily confined to [0,1]
             // but just that when it's outside [0,1] it won't be on the curve
             const sp = dp.splitCurve(c.rand(-10, 10), p1, p2);
-            assert.deepStrictEqual(sp.left.p2, sp.right.p1);
+            assert.deepStrictEqual(dp.extractPoint(sp.left.p2), sp.right.p1);
         });
     });
     it("should give back start point when t=0", function () {
         curves.forEach((p2) => {
             const sp = dp.splitCurve(0, p1, p2);
 
-            // after splitting the control points are attached to the left and right curves rather than the end points
-            if (p2.cp1) {
-                sp.right.p2.cp1 = sp.right.cp1;
-            }
-            if (p2.cp2) {
-                sp.right.p2.cp2 = sp.right.cp2;
-            }
-
             assert.deepStrictEqual(sp.left.p1, p1);
-            assert.deepStrictEqual(sp.left.p2, p1);
+            assert.deepStrictEqual(dp.extractPoint(sp.left.p2), p1);
             assert.deepStrictEqual(sp.right.p1, p1);
             assert.deepStrictEqual(sp.right.p2, p2);
         });
@@ -179,24 +172,16 @@ describe("#splitCurve", function () {
         curves.forEach((p2) => {
             const sp = dp.splitCurve(1, p1, p2);
 
-            // after splitting the control points are attached to the left and right curves rather than the end points
-            if (sp.left.cp1) {
-                sp.left.p2.cp1 = sp.left.cp1;
-            }
-            if (sp.left.cp2) {
-                sp.left.p2.cp2 = sp.left.cp2;
-            }
-
             assert.deepStrictEqual(sp.left.p1, p1);
             assert.deepStrictEqual(sp.left.p2, p2);
-            assert.deepStrictEqual(sp.right.p1, p2);
+            assert.deepStrictEqual(sp.right.p1, dp.extractPoint(p2));
             const extractedP2 = dp.extractPoint(p2);
-            assert.deepStrictEqual(sp.right.p2, extractedP2);
+            assert.deepStrictEqual(dp.extractPoint(sp.right.p2), extractedP2);
             if (p2.cp1) {
-                assert.deepStrictEqual(sp.right.cp1, extractedP2);
+                assert.deepStrictEqual(sp.right.p2.cp1, extractedP2);
             }
             if (p2.cp2) {
-                assert.deepStrictEqual(sp.right.cp2, extractedP2);
+                assert.deepStrictEqual(sp.right.p2.cp2, extractedP2);
             }
         });
     });
@@ -208,10 +193,6 @@ describe("#splitCurve", function () {
             tSplits.forEach((tSplit) => {
 
                 const sp = dp.splitCurve(tSplit, p1, p2);
-                sp.left.p2.cp1 = sp.left.cp1;
-                sp.left.p2.cp2 = sp.left.cp2;
-                sp.right.p2.cp1 = sp.right.cp1;
-                sp.right.p2.cp2 = sp.right.cp2;
 
                 tSteps.forEach((t) => {
                     // expected point
@@ -221,7 +202,9 @@ describe("#splitCurve", function () {
                     if (t < tSplit) {
                         actualPt = dp.getPointOnCurve(t / tSplit, sp.left.p1, sp.left.p2);
                     } else {
-                        actualPt = dp.getPointOnCurve((t - tSplit) / (1 - tSplit), sp.right.p1, sp.right.p2);
+                        actualPt = dp.getPointOnCurve((t - tSplit) / (1 - tSplit),
+                            sp.right.p1,
+                            sp.right.p2);
                     }
 
                     c.assertDeepCloseTo(actualPt, expectedPt);
@@ -273,62 +256,65 @@ describe("#interpolateCurve", function () {
             const points = dp.interpolateCurve(p1, p2, betweenPoint);
             assert.strictEqual(points.length, 0);
         });
-        it("should not interpolate points not between p1,p2 (t outside of [0,1]) for linear", function () {
-            const p2 = dp.point(p1.x + 50, p1.y);
-            // even farther to the right than the endpoint
-            const betweenPoint = dp.point(p1.x + 75, null);
-            const points = dp.interpolateCurve(p1, p2, betweenPoint);
-            assert.strictEqual(points.length, 0);
-        });
-        it("should not interpolate points not between p1,p2 (t outside of [0,1]) for quadratic", function () {
-            const p2 = dp.point(p1.x + 50, p1.y);
-            // linear because p2 has no control points yet
-            p2.cp1 = dp.adjust(dp.getPointOnCurve(0.5, p1, p2), 0, 10);
-            {
+        it("should not interpolate points not between p1,p2 (t outside of [0,1]) for linear",
+            function () {
+                const p2 = dp.point(p1.x + 50, p1.y);
                 // even farther to the right than the endpoint
                 const betweenPoint = dp.point(p1.x + 75, null);
                 const points = dp.interpolateCurve(p1, p2, betweenPoint);
                 assert.strictEqual(points.length, 0);
-            }
-            {
-                // below both end points and control point
-                const betweenPoint = dp.point(null, p1.y - 10);
-                const points = dp.interpolateCurve(p1, p2, betweenPoint);
-                assert.strictEqual(points.length, 0);
-            }
-            {
-                // above central control point
-                const betweenPoint = dp.point(null, p2.cp1.y + 10);
-                const points = dp.interpolateCurve(p1, p2, betweenPoint);
-                assert.strictEqual(points.length, 0);
-            }
-        });
-        it("should not interpolate points not between p1,p2 (t outside of [0,1]) for cubic", function () {
-            const p2 = dp.point(p1.x + 50, p1.y);
-            // linear because p2 has no control points yet
-            const cp1 = dp.adjust(dp.getPointOnCurve(0.3, p1, p2), 0, 10);
-            const cp2 = dp.adjust(dp.getPointOnCurve(0.7, p1, p2), 0, -10);
-            p2.cp1 = cp1;
-            p2.cp2 = cp2;
-            {
-                // even farther to the right than the endpoint
-                const betweenPoint = dp.point(p1.x + 75, null);
-                const points = dp.interpolateCurve(p1, p2, betweenPoint);
-                assert.strictEqual(points.length, 0);
-            }
-            {
-                // below control points
-                const betweenPoint = dp.point(null, p1.y - 11);
-                const points = dp.interpolateCurve(p1, p2, betweenPoint);
-                assert.strictEqual(points.length, 0);
-            }
-            {
-                // above control points
-                const betweenPoint = dp.point(null, p1.y + 11);
-                const points = dp.interpolateCurve(p1, p2, betweenPoint);
-                assert.strictEqual(points.length, 0);
-            }
-        });
+            });
+        it("should not interpolate points not between p1,p2 (t outside of [0,1]) for quadratic",
+            function () {
+                const p2 = dp.point(p1.x + 50, p1.y);
+                // linear because p2 has no control points yet
+                p2.cp1 = dp.adjust(dp.getPointOnCurve(0.5, p1, p2), 0, 10);
+                {
+                    // even farther to the right than the endpoint
+                    const betweenPoint = dp.point(p1.x + 75, null);
+                    const points = dp.interpolateCurve(p1, p2, betweenPoint);
+                    assert.strictEqual(points.length, 0);
+                }
+                {
+                    // below both end points and control point
+                    const betweenPoint = dp.point(null, p1.y - 10);
+                    const points = dp.interpolateCurve(p1, p2, betweenPoint);
+                    assert.strictEqual(points.length, 0);
+                }
+                {
+                    // above central control point
+                    const betweenPoint = dp.point(null, p2.cp1.y + 10);
+                    const points = dp.interpolateCurve(p1, p2, betweenPoint);
+                    assert.strictEqual(points.length, 0);
+                }
+            });
+        it("should not interpolate points not between p1,p2 (t outside of [0,1]) for cubic",
+            function () {
+                const p2 = dp.point(p1.x + 50, p1.y);
+                // linear because p2 has no control points yet
+                const cp1 = dp.adjust(dp.getPointOnCurve(0.3, p1, p2), 0, 10);
+                const cp2 = dp.adjust(dp.getPointOnCurve(0.7, p1, p2), 0, -10);
+                p2.cp1 = cp1;
+                p2.cp2 = cp2;
+                {
+                    // even farther to the right than the endpoint
+                    const betweenPoint = dp.point(p1.x + 75, null);
+                    const points = dp.interpolateCurve(p1, p2, betweenPoint);
+                    assert.strictEqual(points.length, 0);
+                }
+                {
+                    // below control points
+                    const betweenPoint = dp.point(null, p1.y - 11);
+                    const points = dp.interpolateCurve(p1, p2, betweenPoint);
+                    assert.strictEqual(points.length, 0);
+                }
+                {
+                    // above control points
+                    const betweenPoint = dp.point(null, p1.y + 11);
+                    const points = dp.interpolateCurve(p1, p2, betweenPoint);
+                    assert.strictEqual(points.length, 0);
+                }
+            });
     });
 
 
@@ -336,9 +322,10 @@ describe("#interpolateCurve", function () {
         const ts = [0.1, 0.5, 0.7, 0.9];
         curves.forEach((p2, degree) => {
             dimensions.forEach((dimensionToFind) => {
-                it(`should interpolate degree ${degree + 1} missing ${dimensionToFind}`, function () {
-                    ts.forEach(t => testInterpolation(t, p1, p2, dimensionToFind));
-                });
+                it(`should interpolate degree ${degree + 1} missing ${dimensionToFind}`,
+                    function () {
+                        ts.forEach(t => testInterpolation(t, p1, p2, dimensionToFind));
+                    });
             });
         });
     });
@@ -377,16 +364,17 @@ describe("#simpleQuadratic", function () {
         });
     });
     const deflections = [0.1, -0.1, 0.5, 1, 5, 10, -20];
-    it("should give a control point whose closest distance to line p1 -> p2 is |deflection|", function () {
-        deflections.forEach((deflection) => {
-            ts.forEach((t) => {
-                const cp = dp.simpleQuadratic(p1, pLinear, t, deflection);
-                // closest point to the control point along p1 -> p2 should be at t
-                const closestPoint = dp.getPointOnCurve(t, p1, pLinear);
-                c.assertCloseTo(dp.norm(dp.diff(cp, closestPoint)), Math.abs(deflection));
+    it("should give a control point whose closest distance to line p1 -> p2 is |deflection|",
+        function () {
+            deflections.forEach((deflection) => {
+                ts.forEach((t) => {
+                    const cp = dp.simpleQuadratic(p1, pLinear, t, deflection);
+                    // closest point to the control point along p1 -> p2 should be at t
+                    const closestPoint = dp.getPointOnCurve(t, p1, pLinear);
+                    c.assertCloseTo(dp.norm(dp.diff(cp, closestPoint)), Math.abs(deflection));
+                });
             });
         });
-    });
 });
 
 describe("#getCubicControlPoints", function () {
@@ -420,13 +408,15 @@ describe("#transformCurve", function () {
         it("should return original curve when t = 0 for degree " + (degree + 1), function () {
             const newP2 = dp.transformCurve(0, p1, p2, pp2);
             ts.forEach((t) => {
-                c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, newP2), dp.getPointOnCurve(t, p1, p2));
+                c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, newP2),
+                    dp.getPointOnCurve(t, p1, p2));
             });
         });
         it("should return end curve when t = 1 for degree " + (degree + 1), function () {
             const newP2 = dp.transformCurve(1, p1, p2, pp2);
             ts.forEach((t) => {
-                c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, newP2), dp.getPointOnCurve(t, p1, pp2));
+                c.assertDeepCloseTo(dp.getPointOnCurve(t, p1, newP2),
+                    dp.getPointOnCurve(t, p1, pp2));
             });
         });
     });

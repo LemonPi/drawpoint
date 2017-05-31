@@ -65,7 +65,7 @@ function getCubicValue(t, p1, cp1, cp2, p2) {
     // (1 - t)^3 * p1 + 3(1 - t)^2 * t * cp1 + 3(1 - t)t^2 * cp2 + t^3 * p2
     // leave in unexpanded form
     return p1 * (1 - t) * (1 - t) * (1 - t) + 3 * cp1 * (1 - t) * (1 - t) * t +
-        3 * cp2 * (1 - t) * t * t + p2 * t * t * t;
+           3 * cp2 * (1 - t) * t * t + p2 * t * t * t;
 }
 
 function splitBezier(t, p1, cp1, cp2, p2) {
@@ -77,19 +77,24 @@ function splitBezier(t, p1, cp1, cp2, p2) {
     const H = getPointOnLine(t, E, F);
     const J = getPointOnLine(t, F, G);
     const K = getPointOnLine(t, H, J);
+
+    const left = {
+        p1,
+        p2: K
+    };
+    left.p2.cp1 = E;
+    left.p2.cp2 = H;
+
+    const right = {
+        p1: extractPoint(K),
+        p2
+    };
+    right.p2.cp1 = J;
+    right.p2.cp2 = G;
+
     return {
-        left: {
-            p1,
-            cp1: E,
-            cp2: H,
-            p2: K
-        },
-        right: {
-            p1: K,
-            cp1: J,
-            cp2: G,
-            p2
-        }
+        left,
+        right
     };
 }
 
@@ -99,17 +104,20 @@ function splitQuadratic(t, p1, cp, p2) {
     const E = getPointOnLine(t, cp, p2);
     const F = getPointOnLine(t, D, E);
 
+    const left = {
+        p1,
+        p2: F
+    };
+    left.p2.cp1 = D;
+    const right = {
+        p1: extractPoint(F),
+        p2
+    };
+    right.p2.cp1 = E;
+
     return {
-        left: {
-            p1,
-            cp1: D,
-            p2: F
-        },
-        right: {
-            p1: F,
-            cp1: E,
-            p2
-        }
+        left,
+        right
     };
 }
 
@@ -117,7 +125,7 @@ function splitLinear(t, p1, p2) {
     // split a linear linear
     const C = getPointOnLine(t, p1, p2);
     return {
-        left: {
+        left : {
             p1,
             p2: C
         },
@@ -144,9 +152,9 @@ export function splitCurve(t, p1, p2) {
     // split either a quadratic or cubic curve depending on number of control points on
     // the end point
     return applyToCurve(p1, p2, {
-        linear: splitLinear.bind(null, t),
+        linear   : splitLinear.bind(null, t),
         quadratic: splitQuadratic.bind(null, t),
-        cubic: splitBezier.bind(null, t),
+        cubic    : splitBezier.bind(null, t),
     });
 }
 
@@ -312,9 +320,12 @@ export function interpolateCurve(p1, p2, betweenPoint) {
     }
 
     const ts = applyToCurve(p1, p2, {
-        linear: (...cps) => interpolateLinear(...cps.map(cp => cp[knownDim]), betweenPoint[knownDim]),
-        quadratic: (...cps) => interpolateQuadratic(...cps.map(cp => cp[knownDim]), betweenPoint[knownDim]),
-        cubic: (...cps) => interpolateCubic(...cps.map(cp => cp[knownDim]), betweenPoint[knownDim]),
+        linear   : (...cps) => interpolateLinear(...cps.map(cp => cp[knownDim]),
+            betweenPoint[knownDim]),
+        quadratic: (...cps) => interpolateQuadratic(...cps.map(cp => cp[knownDim]),
+            betweenPoint[knownDim]),
+        cubic    : (...cps) => interpolateCubic(...cps.map(cp => cp[knownDim]),
+            betweenPoint[knownDim]),
     }).filter((t) => {
         // solving cubic equations is not very numerically stable...
         t = roundToDec(t, 3);
