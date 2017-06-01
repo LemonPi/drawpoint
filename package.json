@@ -4,7 +4,7 @@
   "description": "Draw on HTML canvas using points and operations on points",
   "main": "dist/drawpoint.js",
   "scripts": {
-    "test": "webpack && mocha test/test.js",
+    "test": "mocha test/test.js",
     "build": "webpack -p"
   },
   "keywords": [
