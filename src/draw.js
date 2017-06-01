@@ -1,6 +1,6 @@
 "use strict";
 
-import {breakPoint, clone,  scale, extractPoint} from "./point";
+import {breakPoint, extractPoint} from "./point";
 import {simpleQuadratic} from "./curve";
 
 /**
@@ -145,48 +145,15 @@ export function drawSpecificCurl(left, center, right) {
  */
 export function tracePoint(pt, options) {
     if (!options) {
-        options = {radius:1};
+        options = {radius: 1};
     } else if (typeof options === "number") {
         // convenience for defining radius of trace point
-        options = {radius:options};
+        options = {radius: options};
     }
-    pt.traceOptions = {point:options};
+    pt.traceOptions = {point: options};
     return pt;
 }
 
 
 
-/**
- * Given a curve defined by (start, end), return a draw point such that (end, returned point) looks identical,
- * but travels in the opposite direction.
- * @param start
- * @param end
- * @returns {*}
- */
-export function reverseDrawPoint(start, end) {
-    if (!start || !end) {
-        return start;
-    }
-    return {
-        x  : start.x,
-        y  : start.y,
-        cp1: clone(end.cp2),
-        cp2: clone(end.cp1)
-    };
-}
-
-/**
- * For a cubic curve point, get a control point on the other side of the point so that the
- * curve is smooth.
- * @param {point} pt End point of a cubic curve (must have 2nd control point)
- * @param {number} scaleBy How much back to extend the continuing control point.
- * A value of 1 produces a symmetric curve.
- * @returns {{x, y}|{x: number, y: number}|*} Continuing control point
- */
-export function getSmoothControlPoint(pt, scaleBy) {
-    if (pt.hasOwnProperty("cp2") === false) {
-        throw new Error("point has no second control point; can't get smooth control point");
-    }
-    return scale(pt.cp2, -scaleBy, pt);
-}
 

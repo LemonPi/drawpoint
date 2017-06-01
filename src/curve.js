@@ -2,7 +2,8 @@
  * Created by johnson on 11.05.17.
  */
 
-import {add, makePoint, extractPoint, diff, getPerpendicularVector} from "./point";
+import {scale, add, makePoint, extractPoint, diff, getPerpendicularVector} from "./point";
+import {clone} from "./util";
 import {roundToDec} from "./numeric";
 
 export function applyToCurve(p1, p2, {linear, quadratic, cubic}) {
@@ -431,4 +432,47 @@ export function transformCurve(t, p1, initP2, endP2) {
     newEnd.cp1 = getPointOnLine(t, initCp1, endCp1);
     newEnd.cp2 = getPointOnLine(t, initCp2, endCp2);
     return newEnd;
+}
+
+/**
+ * Given a curve defined by (start, end), return a draw point such that (end, returned point) looks identical,
+ * but travels in the opposite direction.
+ * @param start
+ * @param end
+ * @returns {*}
+ */
+export function reverseDrawPoint(start, end) {
+    if (!start || !end) {
+        return start;
+    }
+    return {
+        x  : start.x,
+        y  : start.y,
+        cp1: clone(end.cp2),
+        cp2: clone(end.cp1)
+    };
+}
+
+/**
+ * Get a control point that would ensure a smooth continuation from the input curve when
+ * used as cp1 either for a quadratic or cubic curve.
+ * @param {point} p1 Start point of a curve
+ * @param {point} p2 End point of a curve
+ * @param {number} scaleBy How much back to extend the continuing control point.
+ * A value of 1 produces a symmetric curve.
+ * @returns {{x, y}|{x: number, y: number}|*} Continuing control point
+ */
+export function continueCurve(p1, p2, scaleBy = 1) {
+    return applyToCurve(p1, p2, {
+        linear(){
+            return add(p2, diff(p1, p2), scaleBy);
+        },
+        quadratic() {
+            const cubicEndPoint = elevateDegree(p1, p2);
+            return scale(cubicEndPoint.cp2, -scaleBy, p2);
+        },
+        cubic() {
+            return scale(p2.cp2, -scaleBy, p2);
+        }
+    });
 }
