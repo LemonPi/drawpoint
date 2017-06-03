@@ -20,8 +20,7 @@ The test outputs the seed it's using at the top, which you can
 pass back into `npm test [seed]` to replicate behaviour.
 
 ### demo
-The demo's now a separate project.
-Instructions to come.
+[Interative demo](http://johnsonzhong.me/drawpoint-demo/)
 
 ### include (browser)
 
