@@ -2,6 +2,8 @@
 A simple library to abstract drawing on HTML canvases by 
 using points and operations on points.
 
+## [Interactive demo](http://johnsonzhong.me/drawpoint-demo/)
+
 ## Usage
 Get by cloning the repository, or `npm install drawpoint`.
 
@@ -19,8 +21,6 @@ npm test [optional seed]
 The test outputs the seed it's using at the top, which you can
 pass back into `npm test [seed]` to replicate behaviour.
 
-### demo
-[Interative demo](http://johnsonzhong.me/drawpoint-demo/)
 
 ### include (browser)
 
