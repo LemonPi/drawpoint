@@ -1,10 +1,7 @@
-"use strict";
+'use strict';
 
 export function point(x, y) {
-    return {
-        x,
-        y
-    };
+    return {x, y};
 }
 
 /**
@@ -15,9 +12,7 @@ export function point(x, y) {
  * @returns {{x, y}|*}
  */
 export function makePoint(func, ...cps) {
-    return point(
-        func(...cps.map(cp => cp.x)),
-        func(...cps.map(cp => cp.y)));
+    return point(func(...cps.map(cp => cp.x)), func(...cps.map(cp => cp.y)));
 }
 
 export const origin = Object.freeze(point(0, 0));
@@ -28,9 +23,7 @@ export const origin = Object.freeze(point(0, 0));
  * @readonly
  * @type {Object}
  */
-export const breakPoint = Object.freeze({
-    break: true
-});
+export const breakPoint = Object.freeze({break: true});
 
 /**
  * Signals for a fill path to not try to complete it by drawing a curve from end
@@ -39,9 +32,7 @@ export const breakPoint = Object.freeze({
  * @readonly
  * @type {Object}
  */
-export const endPoint = Object.freeze({
-    end: true
-});
+export const endPoint = Object.freeze({end: true});
 
 /**
  * Treat points as vectors and add them, optionally after scaling p2
@@ -137,19 +128,16 @@ export function reflect(pt, m = Infinity, b = 0) {
 
     // vertical linear
     if (m === Infinity) {
-        c = 0;
+        c  = 0;
         cm = 0;
         // has no single y-intercept
         b = pt.y;
     } else {
-        c = (pt.x + (pt.y - b) * m) / (1 + m * m);
+        c  = (pt.x + (pt.y - b) * m) / (1 + m * m);
         cm = c * m;
     }
 
-    return point(
-        2 * c - pt.x,
-        2 * cm - pt.y + 2 * b
-    );
+    return point(2 * c - pt.x, 2 * cm - pt.y + 2 * b);
 }
 
 /**
@@ -175,7 +163,7 @@ export function adjust(pt, dx, dy) {
 }
 
 /**
- * Shift a sequence of draw points
+ * Shift a sequence of draw points and return the shifted points
  * @param dx
  * @param dy
  * @param points
@@ -190,14 +178,14 @@ export function adjustPoints(dx, dy, ...points) {
 }
 
 /**
- * Explode or shrink points around a center point
+ * Explode or shrink points around a center point in place
  * @param center The point other points are scaled relative to
  * @param {number} scaleBy Multiplier for the distance between each point and center
  * @param points Points to scale relative to center
  */
 export function scalePoints(center, scaleBy, ...points) {
     points.forEach((pt) => {
-        if (!pt || pt.hasOwnProperty("x") === false) {
+        if (!pt || pt.hasOwnProperty('x') === false) {
             return;
         }
         const {x, y} = scale(pt, scaleBy, center);
@@ -221,7 +209,7 @@ export function scalePoints(center, scaleBy, ...points) {
 export function rotatePoints(pivot, rad, ...points) {
     let cos = Math.cos(rad), sin = Math.sin(rad);
     points.forEach((pt) => {
-        if (!pt || pt.hasOwnProperty("x") === false) {
+        if (!pt || pt.hasOwnProperty('x') === false) {
             return;
         }
         rotateDiff(pivot, pt, sin, cos);
@@ -243,9 +231,8 @@ export function rotatePoints(pivot, rad, ...points) {
  */
 function rotateDiff(pivot, pt, sin, cos) {
     const pointDiff = diff(pivot, pt);
-    const dx = pointDiff.x * cos - pointDiff.y * sin;
-    const dy = pointDiff.x * sin + pointDiff.y * cos;
-    pt.x = pivot.x + dx;
-    pt.y = pivot.y + dy;
+    const dx        = pointDiff.x * cos - pointDiff.y * sin;
+    const dy        = pointDiff.x * sin + pointDiff.y * cos;
+    pt.x            = pivot.x + dx;
+    pt.y            = pivot.y + dy;
 }
-
