@@ -2,7 +2,7 @@
   "name": "drawpoint",
   "version": "1.4.1",
   "description": "Draw on HTML canvas using points and operations on points",
-  "main": "dist/drawpoint.js",
+  "main": "src/index.js",
   "scripts": {
     "test": "mocha test/test.js",
     "build": "webpack -p"
@@ -20,10 +20,10 @@
     "babel-loader": "^7.0.0",
     "babel-preset-es2015": "^6.24.1",
     "deep-close-to": "^1.0.1",
-    "mocha": "^3.3.0",
+    "mocha": "^7.1.2",
     "seedrandom": "^2.4.2",
-    "webpack": "^2.5.1",
-    "webpack-dev-server": "^2.4.5"
+    "webpack": "^4.43.0",
+    "webpack-dev-server": "^3.11.0"
   },
   "dependencies": {
     "context-2d-tracked": "^1.0.2"
