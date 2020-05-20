@@ -1,8 +1,9 @@
 "use strict";
 
-import {breakPoint, extractPoint} from "./point";
+import {breakPoint, DrawPoint, extractPoint} from "./point";
 import {simpleQuadratic} from "./curve";
 
+// noinspection JSUnusedGlobalSymbols
 /**
  * Styling option to not show stroke or fill
  * @readonly
@@ -10,12 +11,13 @@ import {simpleQuadratic} from "./curve";
  */
 export const none = "rgba(0,0,0,0)";
 
+// noinspection JSUnusedGlobalSymbols
 /**
  * Draw the path formed by the list of drawpoints
  * @param {Context2DTracked} ctx Context2D to render to, if it exists
  * @param {Object[]} points Ordered list of draw points, each with x and y
  */
-export function drawPoints(ctx, ...points) {
+export function drawPoints(ctx: any, ...points) {
     // given ctx and a list of points, draw points between them based on how many control points
     // are defined for each
     // does not begin a path or fill or stroke (just moves pen between the points)
@@ -59,29 +61,38 @@ export function drawPoints(ctx, ...points) {
     }
 }
 
+// noinspection JSUnusedGlobalSymbols
 /**
  * Get the drawpoints for a circle
  * @param {object} center Point at the center of the circle
  * @param {number} radius Radius in cm
  * @returns {object[]} List of draw points for this circle (could be passed to guiMenuItem)
  */
-export function drawCircle(center, radius) {
+export function drawCircle(center: DrawPoint, radius: number): DrawPoint[] {
     const stretch = 0.552284749831 * radius;
     let top = {
         x: center.x,
-        y: center.y + radius
+        y: center.y + radius,
+        cp1: undefined,
+        cp2: undefined,
     };
     let right = {
         x: center.x + radius,
-        y: center.y
+        y: center.y,
+        cp1: undefined,
+        cp2: undefined,
     };
     let bot = {
         x: center.x,
-        y: center.y - radius
+        y: center.y - radius,
+        cp1: undefined,
+        cp2: undefined,
     };
     let left = {
         x: center.x - radius,
-        y: center.y
+        y: center.y,
+        cp1: undefined,
+        cp2: undefined,
     };
     top.cp1 = {
         x: left.x,
@@ -119,10 +130,11 @@ export function drawCircle(center, radius) {
     return [top, right, bot, left, top];
 }
 
+// noinspection JSUnusedGlobalSymbols
 export function drawSpecificCurl(left, center, right) {
     const p1 = extractPoint(left);
-    const p2 = extractPoint(center);
-    const p3 = extractPoint(right);
+    const p2 = extractPoint(center) as DrawPoint;
+    const p3 = extractPoint(right) as DrawPoint;
 
     {
         const {t = 0.5, deflection = 0.5} = left;
@@ -136,6 +148,7 @@ export function drawSpecificCurl(left, center, right) {
 }
 
 
+// noinspection JSUnusedGlobalSymbols
 /**
  * Debug the curve going into a drawpoint. Use by wrapping a drawpoint with it when returning
  * to guiMenuItem.

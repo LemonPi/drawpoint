@@ -53,7 +53,7 @@ describe("#roundToDec", function () {
     });
 
     it("should round negative numbers towards 0", function () {
-        assert.strictEqual(dp.roundToDec(-0.49, 0), 0);
+        assert.strictEqual(dp.roundToDec(-0.49, 0), -0);
         assert.strictEqual(dp.roundToDec(-0.49, 1), -0.5);
     });
 

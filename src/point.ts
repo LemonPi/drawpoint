@@ -1,8 +1,18 @@
-'use strict';
+export interface Point {
+    x: number;
+    y: number;
+}
 
-export function point(x, y) {
+export interface DrawPoint extends Point {
+    cp1?: Point;
+    cp2?: Point;
+}
+
+export function point(x: number, y: number): Point {
     return {x, y};
 }
+
+type ModFunction = (...dim: number[]) => number;
 
 /**
  * Make a new point where each dimension is the result of applying a function to
@@ -11,7 +21,7 @@ export function point(x, y) {
  * @param cps
  * @returns {{x, y}|*}
  */
-export function makePoint(func, ...cps) {
+export function makePoint(func: ModFunction, ...cps: DrawPoint[]): DrawPoint {
     return point(func(...cps.map(cp => cp.x)), func(...cps.map(cp => cp.y)));
 }
 
@@ -25,6 +35,7 @@ export const origin = Object.freeze(point(0, 0));
  */
 export const breakPoint = Object.freeze({break: true});
 
+// noinspection JSUnusedGlobalSymbols
 /**
  * Signals for a fill path to not try to complete it by drawing a curve from end
  * point to first point as the fill has already done its job
@@ -41,7 +52,7 @@ export const endPoint = Object.freeze({end: true});
  * @param scaleBy
  * @returns {{x: *, y: *}}
  */
-export function add(p1, p2, scaleBy = 1) {
+export function add(p1: Point, p2: Point, scaleBy: number = 1): Point {
     return makePoint((pp1, pp2) => {
         return pp1 + pp2 * scaleBy;
     }, p1, p2);
@@ -53,7 +64,7 @@ export function add(p1, p2, scaleBy = 1) {
  * @param {{x:number, y:number}} p2 Second point
  * @returns {{x: number, y: number}}
  */
-export function diff(p1, p2) {
+export function diff(p1: Point, p2: Point): Point {
     return makePoint((pp1, pp2) => {
         return pp2 - pp1;
     }, p1, p2);
@@ -64,16 +75,17 @@ export function diff(p1, p2) {
  * @param vec
  * @returns {number} Euclidean (L^2) norm of vec
  */
-export function norm(vec) {
+export function norm(vec: Point): number {
     return Math.sqrt(vec.x * vec.x + vec.y * vec.y);
 }
 
+// noinspection JSUnusedGlobalSymbols
 /**
  * Get the angle of a vector in radians
  * @param vec
  * @returns {number} Angle in radians
  */
-export function angle(vec) {
+export function angle(vec: Point): number {
     return Math.atan2(vec.y, vec.x);
 }
 
@@ -85,7 +97,7 @@ export function angle(vec) {
  * @param referencePt The point from which to scale
  * @returns {{x: *, y: *}}
  */
-export function scale(pt, scaleBy, referencePt = origin) {
+export function scale(pt: Point, scaleBy: number, referencePt: Point = origin): Point {
     return add(referencePt, diff(referencePt, pt), scaleBy);
 }
 
@@ -95,7 +107,7 @@ export function scale(pt, scaleBy, referencePt = origin) {
  * @param vec
  * @returns {{x: number, y: number}}
  */
-export function getUnitVector(vec) {
+export function getUnitVector(vec: Point): Point {
     const magnitude = norm(vec);
     return makePoint(v => v / magnitude, vec);
 }
@@ -105,7 +117,7 @@ export function getUnitVector(vec) {
  * @param vec Point that doubles as a vector from (0,0) to the point
  * @returns {{x: number, y: number}}
  */
-export function getPerpendicularVector(vec) {
+export function getPerpendicularVector(vec: Point): Point {
     // rotate counterclockwise by 90 degrees
     return getUnitVector(point(-vec.y, vec.x));
 }
@@ -113,14 +125,15 @@ export function getPerpendicularVector(vec) {
 /**
  * Remove any extra information from a point down to just x,y
  */
-export function extractPoint(pt) {
+export function extractPoint(pt: Point): Point {
     return point(pt.x, pt.y);
 }
 
+// noinspection JSUnusedGlobalSymbols
 /**
  * Remove any extra information from a point and reflect across y axis
  */
-export function reflect(pt, m = Infinity, b = 0) {
+export function reflect(pt: Point, m: number = Infinity, b: number = 0): Point {
     if (!pt) {
         return pt;
     }
@@ -128,12 +141,12 @@ export function reflect(pt, m = Infinity, b = 0) {
 
     // vertical linear
     if (m === Infinity) {
-        c  = 0;
+        c = 0;
         cm = 0;
         // has no single y-intercept
         b = pt.y;
     } else {
-        c  = (pt.x + (pt.y - b) * m) / (1 + m * m);
+        c = (pt.x + (pt.y - b) * m) / (1 + m * m);
         cm = c * m;
     }
 
@@ -147,12 +160,12 @@ export function reflect(pt, m = Infinity, b = 0) {
  * @param {number} dy
  * @returns {object}
  */
-export function adjust(pt, dx, dy) {
+export function adjust(pt: DrawPoint, dx: number, dy: number): DrawPoint {
     if (!pt) {
         return pt;
     }
     // return a point with x and y adjusted by dx and dy respectively
-    const movedPoint = point(pt.x + dx, pt.y + dy);
+    const movedPoint: DrawPoint = point(pt.x + dx, pt.y + dy);
     if (pt.cp1) {
         movedPoint.cp1 = point(pt.cp1.x + dx, pt.cp1.y + dy);
     }
@@ -162,6 +175,7 @@ export function adjust(pt, dx, dy) {
     return movedPoint;
 }
 
+// noinspection JSUnusedGlobalSymbols
 /**
  * Shift a sequence of draw points and return the shifted points
  * @param dx
@@ -169,7 +183,7 @@ export function adjust(pt, dx, dy) {
  * @param points
  * @returns {Array}
  */
-export function adjustPoints(dx, dy, ...points) {
+export function adjustPoints(dx: number, dy: number, ...points: DrawPoint[]) : DrawPoint[] {
     const shiftedPoints = [];
     points.forEach((pt) => {
         shiftedPoints.push(adjust(pt, dx, dy));
@@ -177,13 +191,14 @@ export function adjustPoints(dx, dy, ...points) {
     return shiftedPoints;
 }
 
+// noinspection JSUnusedGlobalSymbols
 /**
  * Explode or shrink points around a center point in place
  * @param center The point other points are scaled relative to
  * @param {number} scaleBy Multiplier for the distance between each point and center
  * @param points Points to scale relative to center
  */
-export function scalePoints(center, scaleBy, ...points) {
+export function scalePoints(center: Point, scaleBy: number, ...points: DrawPoint[]) : void {
     points.forEach((pt) => {
         if (!pt || pt.hasOwnProperty('x') === false) {
             return;
@@ -200,13 +215,14 @@ export function scalePoints(center, scaleBy, ...points) {
     });
 }
 
+// noinspection JSUnusedGlobalSymbols
 /**
  * Rotate a set of points about a pivot in place
  * @param {object} pivot The point to rotate about
  * @param {number} rad Radians counterclockwise to rotate points
  * @param points List of points to rotate about pivot
  */
-export function rotatePoints(pivot, rad, ...points) {
+export function rotatePoints(pivot : Point, rad : number, ...points: DrawPoint[]) : void {
     let cos = Math.cos(rad), sin = Math.sin(rad);
     points.forEach((pt) => {
         if (!pt || pt.hasOwnProperty('x') === false) {
@@ -229,10 +245,10 @@ export function rotatePoints(pivot, rad, ...points) {
  * @param sin Cached sin(rad) to rotate by
  * @param cos Cached cos(rad) to rotate by
  */
-function rotateDiff(pivot, pt, sin, cos) {
+function rotateDiff(pivot: Point, pt: Point, sin: number, cos: number) : void {
     const pointDiff = diff(pivot, pt);
-    const dx        = pointDiff.x * cos - pointDiff.y * sin;
-    const dy        = pointDiff.x * sin + pointDiff.y * cos;
-    pt.x            = pivot.x + dx;
-    pt.y            = pivot.y + dy;
+    const dx = pointDiff.x * cos - pointDiff.y * sin;
+    const dy = pointDiff.x * sin + pointDiff.y * cos;
+    pt.x = pivot.x + dx;
+    pt.y = pivot.y + dy;
 }

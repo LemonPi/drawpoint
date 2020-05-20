@@ -1,10 +1,10 @@
 {
   "name": "drawpoint",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Draw on HTML canvas using points and operations on points",
-  "main": "src/index.js",
+  "main": "src/index.ts",
   "scripts": {
-    "test": "mocha test/test.js",
+    "test": "mocha test/test.js -r jsdom-global/register",
     "build": "webpack -p"
   },
   "keywords": [
@@ -16,13 +16,18 @@
   "author": "Johnson Zhong",
   "license": "MIT",
   "devDependencies": {
+    "awesome-typescript-loader": "^5.2.1",
     "babel-core": "^6.24.1",
     "babel-loader": "^7.0.0",
     "babel-preset-es2015": "^6.24.1",
     "deep-close-to": "^1.0.1",
+    "jsdom": "16.2.2",
+    "jsdom-global": "3.0.2",
     "mocha": "^7.1.2",
     "seedrandom": "^2.4.2",
+    "typescript": "^3.9.2",
     "webpack": "^4.43.0",
+    "webpack-cli": "^3.3.11",
     "webpack-dev-server": "^3.11.0"
   },
   "dependencies": {
