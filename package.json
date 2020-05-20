@@ -1,11 +1,12 @@
 {
   "name": "drawpoint",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Draw on HTML canvas using points and operations on points",
-  "main": "src/index.ts",
+  "main": "index.js",
   "scripts": {
     "test": "mocha test/test.js -r jsdom-global/register",
-    "build": "webpack -p"
+    "build": "npm run clean && tsc && tsc -m es6 --outDir dist-esm && webpack -p",
+    "clean": "shx rm -rf dist dist-esm"
   },
   "keywords": [
     "canvas",
@@ -28,7 +29,8 @@
     "typescript": "^3.9.2",
     "webpack": "^4.43.0",
     "webpack-cli": "^3.3.11",
-    "webpack-dev-server": "^3.11.0"
+    "webpack-dev-server": "^3.11.0",
+    "shx": "^0.2.2"
   },
   "dependencies": {
     "context-2d-tracked": "^1.0.2"
