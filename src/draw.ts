@@ -27,7 +27,7 @@ export function drawPoints(ctx: any, ...points) {
     let startPoint = points[0];
     // if null is passed through, just continue from last location
     if (startPoint) {
-        if (startPoint === breakPoint) {
+        if (startPoint.break) {
             startPoint = points[1];
         }
         if (startPoint && startPoint.hasOwnProperty("x")) {
@@ -43,7 +43,7 @@ export function drawPoints(ctx: any, ...points) {
             // console.log("don't have point #", i);
             continue;
         }
-        if (p === breakPoint) {
+        if (p.break) {
             ++i;
             if (i < points.length) {
                 p = points[i];
