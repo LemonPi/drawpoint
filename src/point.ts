@@ -6,6 +6,8 @@ export interface Point {
 export interface DrawPoint extends Point {
     cp1?: Point;
     cp2?: Point;
+    break?: boolean;
+    end?: boolean;
 }
 
 export function point(x: number, y: number): Point {
@@ -25,7 +27,7 @@ export function makePoint(func: ModFunction, ...cps: DrawPoint[]): DrawPoint {
     return point(func(...cps.map(cp => cp.x)), func(...cps.map(cp => cp.y)));
 }
 
-export const origin = Object.freeze(point(0, 0));
+export const origin: DrawPoint = Object.freeze(point(0, 0));
 
 /**
  * Insert this special point in the list of points given to drawPoints to
@@ -33,7 +35,7 @@ export const origin = Object.freeze(point(0, 0));
  * @readonly
  * @type {Object}
  */
-export const breakPoint = Object.freeze({break: true});
+export const breakPoint: DrawPoint = Object.freeze({x: 0, y: 0, break: true});
 
 // noinspection JSUnusedGlobalSymbols
 /**
@@ -43,7 +45,7 @@ export const breakPoint = Object.freeze({break: true});
  * @readonly
  * @type {Object}
  */
-export const endPoint = Object.freeze({end: true});
+export const endPoint: DrawPoint = Object.freeze({x: 0, y: 0, end: true});
 
 /**
  * Treat points as vectors and add them, optionally after scaling p2
@@ -183,7 +185,7 @@ export function adjust(pt: DrawPoint, dx: number, dy: number): DrawPoint {
  * @param points
  * @returns {Array}
  */
-export function adjustPoints(dx: number, dy: number, ...points: DrawPoint[]) : DrawPoint[] {
+export function adjustPoints(dx: number, dy: number, ...points: DrawPoint[]): DrawPoint[] {
     const shiftedPoints = [];
     points.forEach((pt) => {
         shiftedPoints.push(adjust(pt, dx, dy));
@@ -198,7 +200,7 @@ export function adjustPoints(dx: number, dy: number, ...points: DrawPoint[]) : D
  * @param {number} scaleBy Multiplier for the distance between each point and center
  * @param points Points to scale relative to center
  */
-export function scalePoints(center: Point, scaleBy: number, ...points: DrawPoint[]) : void {
+export function scalePoints(center: Point, scaleBy: number, ...points: DrawPoint[]): void {
     points.forEach((pt) => {
         if (!pt || pt.hasOwnProperty('x') === false) {
             return;
@@ -222,7 +224,7 @@ export function scalePoints(center: Point, scaleBy: number, ...points: DrawPoint
  * @param {number} rad Radians counterclockwise to rotate points
  * @param points List of points to rotate about pivot
  */
-export function rotatePoints(pivot : Point, rad : number, ...points: DrawPoint[]) : void {
+export function rotatePoints(pivot: Point, rad: number, ...points: DrawPoint[]): void {
     let cos = Math.cos(rad), sin = Math.sin(rad);
     points.forEach((pt) => {
         if (!pt || pt.hasOwnProperty('x') === false) {
@@ -245,7 +247,7 @@ export function rotatePoints(pivot : Point, rad : number, ...points: DrawPoint[]
  * @param sin Cached sin(rad) to rotate by
  * @param cos Cached cos(rad) to rotate by
  */
-function rotateDiff(pivot: Point, pt: Point, sin: number, cos: number) : void {
+function rotateDiff(pivot: Point, pt: Point, sin: number, cos: number): void {
     const pointDiff = diff(pivot, pt);
     const dx = pointDiff.x * cos - pointDiff.y * sin;
     const dy = pointDiff.x * sin + pointDiff.y * cos;
