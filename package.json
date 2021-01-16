@@ -1,6 +1,6 @@
 {
   "name": "drawpoint",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "description": "Draw on HTML canvas using points and operations on points",
   "main": "index.js",
   "scripts": {
