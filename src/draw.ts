@@ -30,7 +30,7 @@ export function drawPoints(ctx: any, ...points) {
         if (startPoint.break) {
             startPoint = points[1];
         }
-        if (startPoint && startPoint.hasOwnProperty("x")) {
+        if (!startPoint.break && !startPoint.end) {
             ctx.moveTo(startPoint.x, startPoint.y);
         }
     }
@@ -55,7 +55,7 @@ export function drawPoints(ctx: any, ...points) {
             ctx.quadraticCurveTo(p.cp1.x, p.cp1.y, p.x, p.y, p.traceOptions);
         } else if (p.cp2) {
             ctx.quadraticCurveTo(p.cp2.x, p.cp2.y, p.x, p.y, p.traceOptions);
-        } else if (p.hasOwnProperty("x")) {
+        } else if (!p.break && !p.end) {
             ctx.lineTo(p.x, p.y);
         }
     }
