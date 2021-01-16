@@ -136,7 +136,7 @@ function splitLinear(t: number, p1: DrawPoint, p2: DrawPoint): SplitResult {
     // split a linear linear
     const C = getPointOnLine(t, p1, p2);
     return {
-        left: {
+        left : {
             p1,
             p2: C
         },
@@ -164,9 +164,9 @@ export function splitCurve(t: number, p1: DrawPoint, p2: DrawPoint): SplitResult
     // split either a quadratic or cubic curve depending on number of control points on
     // the end point
     return applyToCurve(p1, p2, {
-        linear: splitLinear.bind(null, t),
+        linear   : splitLinear.bind(null, t),
         quadratic: splitQuadratic.bind(null, t),
-        cubic: splitBezier.bind(null, t),
+        cubic    : splitBezier.bind(null, t),
     });
 }
 
@@ -313,7 +313,7 @@ function interpolateCubic(p1: number, cp1: number, cp2: number, p2: number, p: n
     const c = p1 / d;
 
     // @ts-ignore
-    return solveCubicEquation(a, b, c).map(t=>roundToDec(t, 4));
+    return solveCubicEquation(a, b, c).map(t => roundToDec(t, 4));
 }
 
 
@@ -331,7 +331,8 @@ interface InterpolatePoint extends DrawPoint {
  * @param betweenPoint Query that has either x or y set to null which is to be determined
  * @returns {Array} List of draw points that have a "t" property which is how far they are along the curve
  */
-export function interpolateCurve(p1: DrawPoint, p2: DrawPoint, betweenPoint: Point): InterpolatePoint[] {
+export function interpolateCurve(p1: DrawPoint, p2: DrawPoint,
+                                 betweenPoint: { x: number | null, y: number | null }): InterpolatePoint[] {
     let knownDim;
     if (betweenPoint.x === null) {
         knownDim = "y";
@@ -343,11 +344,11 @@ export function interpolateCurve(p1: DrawPoint, p2: DrawPoint, betweenPoint: Poi
 
     const ts = applyToCurve(p1, p2, {
         // @ts-ignore
-        linear: (...cps) => interpolateLinear(...cps.map(cp => cp[knownDim]), betweenPoint[knownDim]),
+        linear   : (...cps) => interpolateLinear(...cps.map(cp => cp[knownDim]), betweenPoint[knownDim]),
         // @ts-ignore
         quadratic: (...cps) => interpolateQuadratic(...cps.map(cp => cp[knownDim]), betweenPoint[knownDim]),
         // @ts-ignore
-        cubic: (...cps) => interpolateCubic(...cps.map(cp => cp[knownDim]), betweenPoint[knownDim]),
+        cubic    : (...cps) => interpolateCubic(...cps.map(cp => cp[knownDim]), betweenPoint[knownDim]),
     }).filter((t) => {
         // solving cubic equations is not very numerically stable...
         t = roundToDec(t, 3);
@@ -464,13 +465,13 @@ export function transformCurve(t: number, p1: DrawPoint, initP2: DrawPoint, endP
  * @param end
  * @returns {*}
  */
-export function reverseDrawPoint(start: DrawPoint, end: DrawPoint) : DrawPoint {
+export function reverseDrawPoint(start: DrawPoint, end: DrawPoint): DrawPoint {
     if (!start || !end) {
         return start;
     }
     return {
-        x: start.x,
-        y: start.y,
+        x  : start.x,
+        y  : start.y,
         cp1: clone(end.cp2),
         cp2: clone(end.cp1)
     };
