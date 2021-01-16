@@ -35,7 +35,7 @@ export const origin: DrawPoint = Object.freeze(point(0, 0));
  * @readonly
  * @type {Object}
  */
-export const breakPoint: DrawPoint = Object.freeze({x: 0, y: 0, break: true});
+export const breakPoint: DrawPoint = Object.freeze({x: 999, y: 111, break: true});
 
 // noinspection JSUnusedGlobalSymbols
 /**
@@ -45,7 +45,7 @@ export const breakPoint: DrawPoint = Object.freeze({x: 0, y: 0, break: true});
  * @readonly
  * @type {Object}
  */
-export const endPoint: DrawPoint = Object.freeze({x: 0, y: 0, end: true});
+export const endPoint: DrawPoint = Object.freeze({x: 333, y: 222, end: true});
 
 /**
  * Treat points as vectors and add them, optionally after scaling p2

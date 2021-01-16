@@ -1,6 +1,6 @@
 "use strict";
 
-import {breakPoint, DrawPoint, extractPoint} from "./point";
+import {DrawPoint, extractPoint} from "./point";
 import {simpleQuadratic} from "./curve";
 
 // noinspection JSUnusedGlobalSymbols
@@ -14,7 +14,7 @@ export const none = "rgba(0,0,0,0)";
 // noinspection JSUnusedGlobalSymbols
 /**
  * Draw the path formed by the list of drawpoints
- * @param {Context2DTracked} ctx Context2D to render to, if it exists
+ * @param {CanvasRenderingContext2D} ctx Context2D to render to, if it exists
  * @param {Object[]} points Ordered list of draw points, each with x and y
  */
 export function drawPoints(ctx: any, ...points) {
@@ -71,26 +71,26 @@ export function drawPoints(ctx: any, ...points) {
 export function drawCircle(center: DrawPoint, radius: number): DrawPoint[] {
     const stretch = 0.552284749831 * radius;
     let top = {
-        x: center.x,
-        y: center.y + radius,
+        x  : center.x,
+        y  : center.y + radius,
         cp1: undefined,
         cp2: undefined,
     };
     let right = {
-        x: center.x + radius,
-        y: center.y,
+        x  : center.x + radius,
+        y  : center.y,
         cp1: undefined,
         cp2: undefined,
     };
     let bot = {
-        x: center.x,
-        y: center.y - radius,
+        x  : center.x,
+        y  : center.y - radius,
         cp1: undefined,
         cp2: undefined,
     };
     let left = {
-        x: center.x - radius,
-        y: center.y,
+        x  : center.x - radius,
+        y  : center.y,
         cp1: undefined,
         cp2: undefined,
     };
